@@ -8,18 +8,18 @@ import Demandes from './pages/Demandes'
 import Seance from './pages/Seance'
 import Calendrier from './pages/Calendrier'
 
-const pages = {
-  accueil: <Accueil />,
-  tournee: <Tournee />,
-  materiel: <Materiel />,
-  clientes: <Clientes />,
-  demandes: <Demandes />,
-  seance: <Seance />,
-  calendrier: <Calendrier />,
-}
-
 export default function App() {
   const [current, setCurrent] = useState('accueil')
+
+  const pages = {
+    accueil: <Accueil onNavigate={setCurrent} />,
+    tournee: <Tournee />,
+    materiel: <Materiel />,
+    clientes: <Clientes />,
+    demandes: <Demandes />,
+    seance: <Seance />,
+    calendrier: <Calendrier />,
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
