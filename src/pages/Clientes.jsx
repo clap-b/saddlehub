@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const clientes = [
+const clientsData = [
   {
     id: 1,
     name: 'Claire Moreau',
@@ -17,7 +17,7 @@ const clientes = [
       { name: 'Nuage', selle: 'Passier Optima', arcon: 'Arçon 33', etat: 'Bon', tag: 'OK', tagColor: 'bg-emerald-50 text-emerald-700' },
       { name: 'Tempête', selle: 'Selle à réviser', arcon: 'Gabarit à re-mesurer', etat: 'A maigri depuis mars', tag: 'À vérifier', tagColor: 'bg-amber-50 text-amber-700' },
     ],
-    note: 'Prévoir arçon plus étroit pour Tempête. Claire recommande souvent de nouvelles clientes.',
+    note: 'Prévoir arçon plus étroit pour Tempête. Claire recommande souvent de nouveaux clients.',
   },
   {
     id: 2,
@@ -66,7 +66,7 @@ const clientes = [
     tagColor: 'bg-blue-50 text-blue-600',
     dotColor: 'bg-blue-400',
     chevaux: [],
-    note: 'Nouvelle cliente — fiche cheval à compléter lors du premier RDV.',
+    note: 'Nouveau client — fiche cheval à compléter lors du premier RDV.',
   },
   {
     id: 5,
@@ -87,8 +87,8 @@ const clientes = [
   },
 ]
 
-export default function Clientes() {
-  const [selected, setSelected] = useState(clientes[0])
+export default function Clients() {
+  const [selected, setSelected] = useState(clientsData[0])
 
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -96,11 +96,11 @@ export default function Clientes() {
       {/* LISTE */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-bold text-gray-900">Toutes les clientes</div>
-          <div className="text-xs text-gray-400">24 clientes actives</div>
+          <div className="text-sm font-bold text-gray-900">Tous les clients</div>
+          <div className="text-xs text-gray-400">24 clients actifs</div>
         </div>
         <div className="flex flex-col">
-          {clientes.map(c => (
+          {clientsData.map(c => (
             <div
               key={c.id}
               onClick={() => setSelected(c)}
@@ -116,7 +116,7 @@ export default function Clientes() {
           ))}
         </div>
         <button className="mt-3 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
-          + Nouvelle cliente
+          + Nouveau client
         </button>
       </div>
 

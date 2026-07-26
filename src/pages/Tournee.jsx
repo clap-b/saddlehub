@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const clientes = [
+const clients = [
   { id: 1, name: 'Claire Moreau', zone: 'Champagnole · Jura', dispo: '✓ Dispo matin', dispoColor: 'text-emerald-500', km: '95 km', selected: true },
   { id: 2, name: 'Laura Petit', zone: 'Poligny · Jura', dispo: '✓ Dispo mardi', dispoColor: 'text-emerald-500', km: '+18 km', selected: true },
   { id: 3, name: 'Emma Favre', zone: 'Lons-le-Saunier · Jura', dispo: '✓ Dispo apr.-midi', dispoColor: 'text-emerald-500', km: '+28 km', selected: true },
@@ -20,10 +20,10 @@ const stops = [
 
 export default function Tournee() {
   const [optimised, setOptimised] = useState(false)
-  const [selected, setSelected] = useState(clientes.map(c => c.selected))
+  const [selected, setSelected] = useState(clients.map(c => c.selected))
 
-  function toggleCliente(i) {
-    if (clientes[i].disabled) return
+  function toggleclient(i) {
+    if (clients[i].disabled) return
     const next = [...selected]
     next[i] = !next[i]
     setSelected(next)
@@ -64,7 +64,7 @@ export default function Tournee() {
           <div className="text-xs font-bold text-emerald-700 mb-1">✓ Optimisation automatique — Google Maps API</div>
           <div className="text-xs text-emerald-500 mb-2">Ordre des stops calculé pour minimiser les km et respecter les disponibilités.</div>
           <div className="flex gap-2 flex-wrap">
-            {['Clientes filtrées par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Durées estimées', 'Fenêtres horaires respectées'].map(s => (
+            {['clients filtrées par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Durées estimées', 'Fenêtres horaires respectées'].map(s => (
               <span key={s} className="text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md">{s}</span>
             ))}
           </div>
@@ -73,17 +73,17 @@ export default function Tournee() {
 
       <div className="grid grid-cols-2 gap-4">
 
-        {/* CLIENTES DISPONIBLES */}
+        {/* clients DISPONIBLES */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-bold text-gray-900">Clientes disponibles mardi</div>
+            <div className="text-sm font-bold text-gray-900">clients disponibles mardi</div>
             <div className="text-xs text-gray-400">Clique pour ajouter / retirer</div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {clientes.map((c, i) => (
+            {clients.map((c, i) => (
               <div
                 key={c.id}
-                onClick={() => toggleCliente(i)}
+                onClick={() => toggleclient(i)}
                 className={`border rounded-xl p-3 relative transition-all ${
                   c.disabled ? 'opacity-40 cursor-not-allowed' :
                   selected[i] ? 'border-emerald-500 bg-emerald-50 cursor-pointer' :

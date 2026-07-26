@@ -2,7 +2,7 @@ const navItems = [
   { id: 'accueil', label: 'Accueil' },
   { id: 'tournee', label: 'Planifier tournée' },
   { id: 'materiel', label: 'Matériel & check-list' },
-  { id: 'clientes', label: 'Clientes' },
+  { id: 'clients', label: 'Clients' },
   { id: 'demandes', label: 'Demandes reçues' },
   { id: 'seance', label: 'Résumés de séance' },
   { id: 'calendrier', label: 'Calendrier' },

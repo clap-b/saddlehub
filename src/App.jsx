@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar'
 import Accueil from './pages/Accueil'
 import Tournee from './pages/Tournee'
 import Materiel from './pages/Materiel'
-import Clientes from './pages/Clientes'
+import Clients from "./pages/Clientes";
 import Demandes from './pages/Demandes'
 import Seance from './pages/Seance'
 import Calendrier from './pages/Calendrier'
@@ -15,7 +15,7 @@ export default function App() {
     accueil: <Accueil onNavigate={setCurrent} />,
     tournee: <Tournee />,
     materiel: <Materiel />,
-    clientes: <Clientes />,
+    clients: <Clients />,
     demandes: <Demandes />,
     seance: <Seance />,
     calendrier: <Calendrier />,
