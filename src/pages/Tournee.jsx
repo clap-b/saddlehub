@@ -41,7 +41,7 @@ export default function Tournee() {
           <span className="text-xs text-gray-400">Départ :</span>
           <input type="text" defaultValue="Coppet, CH" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-28" />
           <span className="text-xs text-gray-400">Destination :</span>
-          <input type="text" defaultValue="Chalon-sur-Saône" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-40" />
+<input type="text" defaultValue="" placeholder="Optionnel — dernier client par défaut" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-52" />
           <button
             onClick={() => setOptimised(true)}
             className="bg-emerald-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors"
@@ -62,7 +62,7 @@ export default function Tournee() {
       {optimised && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
           <div className="text-xs font-bold text-emerald-700 mb-1">✓ Optimisation automatique — Google Maps API</div>
-          <div className="text-xs text-emerald-500 mb-2">Ordre des stops calculé pour minimiser les km et respecter les disponibilités.</div>
+          <div className="text-xs text-emerald-500 mb-2">Tu choisis une date → l'app suggère automatiquement les clients dispos ce jour-là, optimise l'ordre des stops et calcule le trajet. Si aucune destination n'est définie, le dernier client devient le point d'arrivée.</div>
           <div className="flex gap-2 flex-wrap">
             {['clients filtrées par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Durées estimées', 'Fenêtres horaires respectées'].map(s => (
               <span key={s} className="text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md">{s}</span>

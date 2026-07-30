@@ -1,25 +1,44 @@
 import { useState } from 'react'
 
-const materielData = [
+const stocks = [
   {
-    categorie: 'Selles à emporter',
-    items: ['Passier Optima', 'Wintec Pro', 'Childéric CSO', 'Arçon ajustable', 'Arçon XL', 'Antarès Contact'],
-    checked: [true, true, false, true, false, false],
+    lieu: 'Camion CH 🇨🇭',
+    items: [
+      { nom: 'Passier Optima', type: 'Selle', statut: 'Disponible' },
+      { nom: 'Wintec Pro', type: 'Selle', statut: 'En prêt chez Claire Moreau — Écurie du Moulin' },
+      { nom: 'Childéric CSO', type: 'Selle', statut: 'Disponible' },
+      { nom: 'Kit réglage arçon', type: 'Outil', statut: 'Disponible' },
+      { nom: 'Jauge gabarit', type: 'Outil', statut: 'Disponible' },
+    ]
   },
   {
-    categorie: 'Équipement & outils',
-    items: ['Jauge gabarit', 'Kit réglage', 'Tapis d\'essai', 'Bourrelets mousse', 'Sangles d\'essai', 'iPhone / caméra'],
-    checked: [true, true, true, false, false, true],
+    lieu: 'Camion FR 🇫🇷',
+    items: [
+      { nom: 'Antarès Contact', type: 'Selle', statut: 'Disponible' },
+      { nom: 'Devoucoux Biarritz', type: 'Selle', statut: 'Disponible' },
+      { nom: "Tapis d'essai", type: 'Accessoire', statut: 'Disponible' },
+      { nom: "Sangles d'essai", type: 'Accessoire', statut: 'Disponible' },
+    ]
   },
   {
-    categorie: 'Documents & admin',
-    items: ['Fiches clients', 'Bons commande', 'Terminal paiement'],
-    checked: [true, true, false],
+    lieu: 'Local CH 🇨🇭',
+    items: [
+      { nom: 'Stubben Scandica', type: 'Selle', statut: 'Disponible' },
+      { nom: 'Arçon XL', type: 'Outil', statut: 'Disponible' },
+      { nom: 'Bourrelets mousse', type: 'Accessoire', statut: 'Disponible' },
+    ]
+  },
+  {
+    lieu: 'Local FR 🇫🇷',
+    items: [
+      { nom: 'Pessoa Genesis', type: 'Selle', statut: 'Disponible' },
+      { nom: 'Kit nettoyage', type: 'Accessoire', statut: 'Disponible' },
+    ]
   },
 ]
 
 const checklist = [
-  { label: 'Selles chargées dans le van', cat: 'Matériel', done: true },
+  { label: 'Selles chargées dans le camion', cat: 'Matériel', done: true },
   { label: 'Outils & kit réglage', cat: 'Matériel', done: true },
   { label: 'Fiches clients imprimées', cat: 'Admin', done: false },
   { label: 'Téléphone chargé', cat: 'Perso', done: false },
@@ -29,19 +48,16 @@ const checklist = [
   { label: 'Repas & eau pour la journée', cat: 'Perso', done: false },
 ]
 
-export default function Materiel() {
-  const [mat, setMat] = useState(materielData)
-  const [checks, setChecks] = useState(checklist)
+const statutColor = (statut) => {
+  if (statut === 'Disponible') return 'bg-emerald-50 text-emerald-700'
+  if (statut.startsWith('En prêt')) return 'bg-amber-50 text-amber-700'
+  return 'bg-gray-100 text-gray-500'
+}
 
-  function toggleMat(catIdx, itemIdx) {
-    const next = mat.map((cat, ci) => {
-      if (ci !== catIdx) return cat
-      const nextChecked = [...cat.checked]
-      nextChecked[itemIdx] = !nextChecked[itemIdx]
-      return { ...cat, checked: nextChecked }
-    })
-    setMat(next)
-  }
+export default function Materiel() {
+  const [checks, setChecks] = useState(checklist)
+  const [stockOuvert, setStockOuvert] = useState('Camion CH 🇨🇭')
+  const [filtre, setFiltre] = useState('Tous')
 
   function toggleCheck(i) {
     const next = [...checks]
@@ -52,39 +68,76 @@ export default function Materiel() {
   const doneCount = checks.filter(c => c.done).length
   const progress = Math.round((doneCount / checks.length) * 100)
 
-  return (
-    <div className="grid grid-cols-2 gap-4">
+  const stockActuel = stocks.find(s => s.lieu === stockOuvert)
+  const itemsFiltres = filtre === 'Tous'
+    ? stockActuel.items
+    : stockActuel.items.filter(i => i.type === filtre)
 
-      {/* MATÉRIEL */}
+  const enPret = stocks.flatMap(s => s.items).filter(i => i.statut.startsWith('En prêt'))
+
+  return (
+    <div className="flex flex-col gap-4">
+
+      {/* STOCK */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
-        <div className="text-sm font-bold text-gray-900 mb-1">Matériel — Tournée Jura · Mardi 22 juillet</div>
-        <div className="bg-blue-50 text-blue-700 text-xs rounded-lg p-2.5 mb-4">
-          🧠 Matériel suggéré automatiquement en fonction des 3 RDV et des fiches chevaux.
+        <div className="text-sm font-bold text-gray-900 mb-3">Stock de matériel</div>
+
+        {/* TABS LIEUX */}
+        <div className="flex gap-1 mb-4 bg-gray-50 rounded-lg p-1 flex-wrap">
+          {stocks.map(s => (
+            <button
+              key={s.lieu}
+              onClick={() => setStockOuvert(s.lieu)}
+              className={`flex-1 text-xs py-1.5 rounded-md font-semibold transition-all ${
+                stockOuvert === s.lieu ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {s.lieu}
+            </button>
+          ))}
         </div>
 
-        {mat.map((cat, ci) => (
-          <div key={cat.categorie} className="mb-4">
-            <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">{cat.categorie}</div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {cat.items.map((item, ii) => (
-                <div
-                  key={item}
-                  onClick={() => toggleMat(ci, ii)}
-                  className={`flex items-center gap-1.5 text-xs px-2 py-1.5 border rounded-lg cursor-pointer transition-all ${
-                    cat.checked[ii]
-                      ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
-                  <div className={`w-3 h-3 rounded flex-shrink-0 border flex items-center justify-center text-white ${cat.checked[ii] ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}>
-                    {cat.checked[ii] && <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5"><polyline points="2 5 4.5 7.5 8 3"/></svg>}
-                  </div>
-                  {item}
-                </div>
-              ))}
+        {/* FILTRES TYPE */}
+        <div className="flex gap-2 mb-3">
+          {['Tous', 'Selle', 'Outil', 'Accessoire'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFiltre(f)}
+              className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                filtre === f
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold'
+                  : 'border-gray-200 text-gray-500 hover:border-emerald-300'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* LISTE ITEMS */}
+        <div className="flex flex-col gap-2">
+          {itemsFiltres.map((item, i) => (
+            <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-gray-900">{item.nom}</div>
+                <div className="text-xs text-gray-400">{item.type}</div>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${statutColor(item.statut)}`}>
+                {item.statut}
+              </span>
             </div>
+          ))}
+        </div>
+
+        {/* EN PRÊT */}
+        {enPret.length > 0 && (
+          <div className="mt-3 bg-amber-50 text-amber-700 text-xs rounded-lg p-2.5">
+            <div>⚠️ Selle(s) en prêt en ce moment :</div>
+            {enPret.map((item, i) => (
+              <div key={i} className="mt-1 font-semibold">· {item.nom} — {item.statut.replace('En prêt ', '')}</div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       {/* CHECKLIST */}
