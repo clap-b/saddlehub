@@ -15,7 +15,7 @@ const stops = [
   { name: 'Claire Moreau — Champagnole', sub: '09h00 · Écurie du Moulin', pills: ['95 km depuis départ', '~1h00', 'Passier Optima + arçon'] },
   { name: 'Laura Petit — Poligny', sub: '11h00 · Les Écuries du Val', pills: ['+18 km', '~1h00', 'Réglage arçon'] },
   { name: 'Emma Favre — Lons-le-Saunier', sub: '14h00 · Écurie privée', pills: ['+28 km', '~1h30', 'Essai nouvelle selle'] },
-  { name: '⛽ Station Total — Bourg-en-Bresse', sub: '~15h45 · +5 min · Sur le trajet A39', pills: ['~18 L · 1.87 €/L · ~33 €', 'Ouverte 24h'], fuel: true },
+  { name: '⛽ Station Total — Bourg-en-Bresse', sub: '~15h45 · +5 min · Sur le trajet A39', pills: ['~18 L · 1.87 CHF/L · ~33 CHF', 'Ouverte 24h'], fuel: true },
   { name: '🏁 Destination — Chalon-sur-Saône', sub: '~17h00 · +83 km', dest: true },
 ]
 
@@ -56,6 +56,7 @@ function TrajetRoute({ waypoints }) {
 export default function Tournee() {
   const [optimised, setOptimised] = useState(false)
   const [selected, setSelected] = useState(clients.map(c => c.selected))
+  const [prixCarburant, setPrixCarburant] = useState(1.87)
 
   function toggleclient(i) {
     if (clients[i].disabled) return
@@ -63,6 +64,8 @@ export default function Tournee() {
     next[i] = !next[i]
     setSelected(next)
   }
+
+  const coutCarburant = Math.round((224 / 100) * 10 * prixCarburant)
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,7 +79,18 @@ export default function Tournee() {
           <span className="text-xs text-gray-400">Départ :</span>
           <input type="text" defaultValue="Coppet, CH" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-28" />
           <span className="text-xs text-gray-400">Destination :</span>
-<input type="text" defaultValue="" placeholder="Optionnel — dernier client par défaut" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-52" />
+          <input type="text" defaultValue="" placeholder="Optionnel — dernier client par défaut" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-52" />
+          <span className="text-xs text-gray-400">Prix/L :</span>
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              step="0.01"
+              defaultValue="1.87"
+              onChange={e => setPrixCarburant(parseFloat(e.target.value))}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-16"
+            />
+            <span className="text-xs text-gray-400">CHF</span>
+          </div>
           <button
             onClick={() => setOptimised(true)}
             className="bg-emerald-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors"
@@ -99,7 +113,7 @@ export default function Tournee() {
           <div className="text-xs font-bold text-emerald-700 mb-1">✓ Optimisation automatique — Google Maps API</div>
           <div className="text-xs text-emerald-500 mb-2">Tu choisis une date → l'app suggère automatiquement les clients dispos ce jour-là, optimise l'ordre des stops et calcule le trajet. Si aucune destination n'est définie, le dernier client devient le point d'arrivée.</div>
           <div className="flex gap-2 flex-wrap">
-            {['clients filtrées par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Durées estimées', 'Fenêtres horaires respectées'].map(s => (
+            {['Clients filtrés par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Durées estimées', 'Fenêtres horaires respectées'].map(s => (
               <span key={s} className="text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md">{s}</span>
             ))}
           </div>
@@ -108,10 +122,10 @@ export default function Tournee() {
 
       <div className="grid grid-cols-2 gap-4">
 
-        {/* clients DISPONIBLES */}
+        {/* CLIENTS DISPONIBLES */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-bold text-gray-900">clients disponibles mardi</div>
+            <div className="text-sm font-bold text-gray-900">Clients disponibles mardi</div>
             <div className="text-xs text-gray-400">Clique pour ajouter / retirer</div>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -141,75 +155,71 @@ export default function Tournee() {
           <div className="text-sm font-bold text-gray-900 mb-3">Trajet optimisé — Google Maps</div>
 
           {/* CARTE GOOGLE MAPS */}
-<div className="rounded-xl overflow-hidden border border-gray-100 mb-3" style={{height: '220px'}}>
-  <Map
-  defaultCenter={{ lat: 46.8182, lng: 6.1 }}
-  defaultZoom={7}
-  mapId="saddlehub-map"
-  gestureHandling="greedy"
-  disableDefaultUI={true}
->
-  {/* Départ — vert */}
-  <Marker
-    position={{ lat: 46.3167, lng: 6.1833 }}
-    title="Départ — Coppet"
-    icon={{
-      path: window.google?.maps.SymbolPath.CIRCLE,
-      fillColor: '#1D9E75',
-      fillOpacity: 1,
-      strokeColor: '#0F6E56',
-      strokeWeight: 2,
-      scale: 10,
-    }}
-  />
-  {/* Stop 1 */}
-  <Marker position={{ lat: 46.6167, lng: 5.9167 }} title="Claire Moreau — Champagnole" label={{ text: '1', color: 'white', fontWeight: 'bold' }} />
-  {/* Stop 2 */}
-  <Marker position={{ lat: 46.6667, lng: 5.7 }} title="Laura Petit — Poligny" label={{ text: '2', color: 'white', fontWeight: 'bold' }} />
-  {/* Stop 3 */}
-  <Marker position={{ lat: 46.6833, lng: 5.55 }} title="Emma Favre — Lons-le-Saunier" label={{ text: '3', color: 'white', fontWeight: 'bold' }} />
-  {/* Arrivée — rouge */}
-  <Marker
-    position={{ lat: 46.7833, lng: 4.8500 }}
-    title="Arrivée — Chalon-sur-Saône"
-    icon={{
-      path: window.google?.maps.SymbolPath.CIRCLE,
-      fillColor: '#E24B4A',
-      fillOpacity: 1,
-      strokeColor: '#A32D2D',
-      strokeWeight: 2,
-      scale: 10,
-    }}
-  />
-  <TrajetRoute waypoints={[
-    { lat: 46.3167, lng: 6.1833 },
-    { lat: 46.6167, lng: 5.9167 },
-    { lat: 46.6667, lng: 5.7 },
-    { lat: 46.6833, lng: 5.55 },
-    { lat: 46.7833, lng: 4.8500 },
-  ]} />
-</Map>
-</div>
+          <div className="rounded-xl overflow-hidden border border-gray-100 mb-3" style={{height: '220px'}}>
+            <Map
+              defaultCenter={{ lat: 46.8182, lng: 6.1 }}
+              defaultZoom={7}
+              mapId="saddlehub-map"
+              gestureHandling="greedy"
+              disableDefaultUI={true}
+            >
+              <Marker
+                position={{ lat: 46.3167, lng: 6.1833 }}
+                title="Départ — Coppet"
+                icon={{
+                  path: window.google?.maps.SymbolPath.CIRCLE,
+                  fillColor: '#1D9E75',
+                  fillOpacity: 1,
+                  strokeColor: '#0F6E56',
+                  strokeWeight: 2,
+                  scale: 10,
+                }}
+              />
+              <Marker position={{ lat: 46.6167, lng: 5.9167 }} title="Claire Moreau — Champagnole" label={{ text: '1', color: 'white', fontWeight: 'bold' }} />
+              <Marker position={{ lat: 46.6667, lng: 5.7 }} title="Laura Petit — Poligny" label={{ text: '2', color: 'white', fontWeight: 'bold' }} />
+              <Marker position={{ lat: 46.6833, lng: 5.55 }} title="Emma Favre — Lons-le-Saunier" label={{ text: '3', color: 'white', fontWeight: 'bold' }} />
+              <Marker
+                position={{ lat: 46.7833, lng: 4.8500 }}
+                title="Arrivée — Chalon-sur-Saône"
+                icon={{
+                  path: window.google?.maps.SymbolPath.CIRCLE,
+                  fillColor: '#E24B4A',
+                  fillOpacity: 1,
+                  strokeColor: '#A32D2D',
+                  strokeWeight: 2,
+                  scale: 10,
+                }}
+              />
+              <TrajetRoute waypoints={[
+                { lat: 46.3167, lng: 6.1833 },
+                { lat: 46.6167, lng: 5.9167 },
+                { lat: 46.6667, lng: 5.7 },
+                { lat: 46.6833, lng: 5.55 },
+                { lat: 46.7833, lng: 4.8500 },
+              ]} />
+            </Map>
+          </div>
 
-{/* LÉGENDE */}
-<div className="flex gap-4 mb-3 flex-wrap">
-  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-    Départ
-  </div>
-  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-    Stops clients
-  </div>
-  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-    <div className="w-3 h-3 rounded-full bg-red-600"></div>
-    Arrivée
-  </div>
-  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-    <div className="w-3 h-3 rounded-full bg-emerald-400 opacity-60"></div>
-    Trajet optimisé
-  </div>
-</div>
+          {/* LÉGENDE */}
+          <div className="flex gap-4 mb-3 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              Départ
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              Stops clients
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-3 h-3 rounded-full bg-red-600"></div>
+              Arrivée
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-3 h-3 rounded-full bg-emerald-400 opacity-60"></div>
+              Trajet optimisé
+            </div>
+          </div>
+
           {/* STATS */}
           <div className="flex gap-4 mb-3 flex-wrap">
             {[
@@ -217,7 +227,7 @@ export default function Tournee() {
               { val: '5h30', lab: 'Durée totale' },
               { val: '3 RDV', lab: 'Stops' },
               { val: '07h30', lab: 'Départ' },
-              { val: '~38 CHF', lab: '⛽ Carburant', color: 'text-amber-700' },
+              { val: `~${coutCarburant} CHF`, lab: '⛽ Carburant', color: 'text-amber-700' },
             ].map(s => (
               <div key={s.lab}>
                 <div className={`text-base font-bold ${s.color || 'text-gray-900'}`}>{s.val}</div>
