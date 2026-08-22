@@ -8,7 +8,7 @@ const navItems = [
   { id: 'calendrier', label: 'Calendrier' },
 ]
 
-export default function Sidebar({ current, onNavigate }) {
+export default function Sidebar({ current, onNavigate, onLogout }) {
   return (
     <div className="w-52 h-screen bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200">
@@ -37,6 +37,12 @@ export default function Sidebar({ current, onNavigate }) {
         <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>Google Maps API</div>
         <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block"></span>Odoo · synchro active</div>
       </div>
+      <button
+  onClick={onLogout}
+  className="mt-3 w-full text-xs text-gray-400 hover:text-red-500 transition-colors text-left"
+>
+  → Se déconnecter
+</button>
     </div>
   )
 }
