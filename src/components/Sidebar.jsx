@@ -8,6 +8,7 @@ const navItems = [
   { id: 'demandes', label: 'Demandes reçues' },
   { id: 'seance', label: 'Résumés de séance' },
   { id: 'calendrier', label: 'Calendrier' },
+  { id: 'parametres', label: 'Paramètres' },
 ]
 
 export default function Sidebar({ current, onNavigate, onLogout }) {

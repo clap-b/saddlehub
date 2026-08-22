@@ -9,6 +9,7 @@ import Clients from './pages/Clientes'
 import Demandes from './pages/Demandes'
 import Seance from './pages/Seance'
 import Calendrier from './pages/Calendrier'
+import Parametres from './pages/Parametres'
 
 export default function App() {
   const [current, setCurrent] = useState('accueil')
@@ -36,6 +37,7 @@ export default function App() {
     demandes: <Demandes />,
     seance: <Seance />,
     calendrier: <Calendrier />,
+    parametres: <Parametres />,
   }
 
   if (loading) return (
