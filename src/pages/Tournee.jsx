@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Map, Marker } from '@vis.gl/react-google-maps'
 
 const clients = [
   { id: 1, name: 'Claire Moreau', zone: 'Champagnole · Jura', dispo: '✓ Dispo matin', dispoColor: 'text-emerald-500', km: '95 km', selected: true },
@@ -105,30 +106,22 @@ export default function Tournee() {
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="text-sm font-bold text-gray-900 mb-3">Trajet optimisé — Google Maps</div>
 
-          {/* CARTE SVG */}
-          <div className="rounded-xl overflow-hidden border border-gray-100 mb-3 relative" style={{height: '160px'}}>
-            <svg viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-              <rect width="400" height="160" fill="#e8f0e4"/>
-              <line x1="0" y1="80" x2="400" y2="80" stroke="#d0d8c8" strokeWidth="6"/>
-              <line x1="80" y1="0" x2="80" y2="160" stroke="#d0d8c8" strokeWidth="4"/>
-              <line x1="200" y1="0" x2="200" y2="160" stroke="#d0d8c8" strokeWidth="3"/>
-              <polyline points="30,75 120,50 185,65 255,45 300,58 350,70" fill="none" stroke="#1D9E75" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="30" cy="75" r="7" fill="#1D9E75"/>
-              <text x="30" y="66" textAnchor="middle" fontSize="7" fill="#0F6E56" fontWeight="bold">Coppet</text>
-              <circle cx="120" cy="50" r="6" fill="white" stroke="#1D9E75" strokeWidth="2"/>
-              <text x="120" y="41" textAnchor="middle" fontSize="7" fill="#1a1a1a">Champagnole</text>
-              <circle cx="185" cy="65" r="6" fill="white" stroke="#1D9E75" strokeWidth="2"/>
-              <text x="185" y="56" textAnchor="middle" fontSize="7" fill="#1a1a1a">Poligny</text>
-              <circle cx="255" cy="45" r="6" fill="white" stroke="#1D9E75" strokeWidth="2"/>
-              <text x="255" y="36" textAnchor="middle" fontSize="7" fill="#1a1a1a">Lons-le-S.</text>
-              <circle cx="300" cy="58" r="7" fill="#FFF7E6" stroke="#EF9F27" strokeWidth="2"/>
-              <text x="300" y="61" textAnchor="middle" fontSize="9" fill="#854F0B">⛽</text>
-              <circle cx="350" cy="70" r="6" fill="#E24B4A"/>
-              <text x="350" y="61" textAnchor="middle" fontSize="7" fill="#A32D2D" fontWeight="bold">Chalon</text>
-            </svg>
-            <div className="absolute top-2 left-2 bg-white rounded-md px-2 py-1 text-xs font-medium border border-gray-200">Coppet → Chalon-sur-Saône</div>
-            <div className="absolute bottom-2 right-2 bg-white rounded-md px-2 py-1 text-xs text-blue-500 font-semibold border border-blue-100">🗺 Google Maps API</div>
-          </div>
+          {/* CARTE GOOGLE MAPS */}
+<div className="rounded-xl overflow-hidden border border-gray-100 mb-3" style={{height: '220px'}}>
+  <Map
+    defaultCenter={{ lat: 46.8182, lng: 6.1 }}
+    defaultZoom={7}
+    mapId="saddlehub-map"
+    gestureHandling="greedy"
+    disableDefaultUI={true}
+  >
+    <Marker position={{ lat: 46.3167, lng: 6.1833 }} label="D" />
+    <Marker position={{ lat: 46.6167, lng: 5.9167 }} label="1" />
+    <Marker position={{ lat: 46.6667, lng: 5.7 }} label="2" />
+    <Marker position={{ lat: 46.6833, lng: 5.55 }} label="3" />
+    <Marker position={{ lat: 46.7833, lng: 4.8500 }} label="A" />
+  </Map>
+</div>
 
           {/* STATS */}
           <div className="flex gap-4 mb-3 flex-wrap">
