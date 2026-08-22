@@ -149,11 +149,38 @@ export default function Tournee() {
   gestureHandling="greedy"
   disableDefaultUI={true}
 >
-  <Marker position={{ lat: 46.3167, lng: 6.1833 }} label="D" />
-  <Marker position={{ lat: 46.6167, lng: 5.9167 }} label="1" />
-  <Marker position={{ lat: 46.6667, lng: 5.7 }} label="2" />
-  <Marker position={{ lat: 46.6833, lng: 5.55 }} label="3" />
-  <Marker position={{ lat: 46.7833, lng: 4.8500 }} label="A" />
+  {/* Départ — vert */}
+  <Marker
+    position={{ lat: 46.3167, lng: 6.1833 }}
+    title="Départ — Coppet"
+    icon={{
+      path: window.google?.maps.SymbolPath.CIRCLE,
+      fillColor: '#1D9E75',
+      fillOpacity: 1,
+      strokeColor: '#0F6E56',
+      strokeWeight: 2,
+      scale: 10,
+    }}
+  />
+  {/* Stop 1 */}
+  <Marker position={{ lat: 46.6167, lng: 5.9167 }} title="Claire Moreau — Champagnole" label={{ text: '1', color: 'white', fontWeight: 'bold' }} />
+  {/* Stop 2 */}
+  <Marker position={{ lat: 46.6667, lng: 5.7 }} title="Laura Petit — Poligny" label={{ text: '2', color: 'white', fontWeight: 'bold' }} />
+  {/* Stop 3 */}
+  <Marker position={{ lat: 46.6833, lng: 5.55 }} title="Emma Favre — Lons-le-Saunier" label={{ text: '3', color: 'white', fontWeight: 'bold' }} />
+  {/* Arrivée — rouge */}
+  <Marker
+    position={{ lat: 46.7833, lng: 4.8500 }}
+    title="Arrivée — Chalon-sur-Saône"
+    icon={{
+      path: window.google?.maps.SymbolPath.CIRCLE,
+      fillColor: '#E24B4A',
+      fillOpacity: 1,
+      strokeColor: '#A32D2D',
+      strokeWeight: 2,
+      scale: 10,
+    }}
+  />
   <TrajetRoute waypoints={[
     { lat: 46.3167, lng: 6.1833 },
     { lat: 46.6167, lng: 5.9167 },
@@ -164,6 +191,25 @@ export default function Tournee() {
 </Map>
 </div>
 
+{/* LÉGENDE */}
+<div className="flex gap-4 mb-3 flex-wrap">
+  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+    Départ
+  </div>
+  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+    Stops clients
+  </div>
+  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="w-3 h-3 rounded-full bg-red-600"></div>
+    Arrivée
+  </div>
+  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="w-3 h-3 rounded-full bg-emerald-400 opacity-60"></div>
+    Trajet optimisé
+  </div>
+</div>
           {/* STATS */}
           <div className="flex gap-4 mb-3 flex-wrap">
             {[
