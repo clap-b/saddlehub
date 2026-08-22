@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Map, Marker } from '@vis.gl/react-google-maps'
+import { useState, useEffect } from 'react'
+import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 
 const clients = [
   { id: 1, name: 'Claire Moreau', zone: 'Champagnole · Jura', dispo: '✓ Dispo matin', dispoColor: 'text-emerald-500', km: '95 km', selected: true },
@@ -18,6 +18,40 @@ const stops = [
   { name: '⛽ Station Total — Bourg-en-Bresse', sub: '~15h45 · +5 min · Sur le trajet A39', pills: ['~18 L · 1.87 €/L · ~33 €', 'Ouverte 24h'], fuel: true },
   { name: '🏁 Destination — Chalon-sur-Saône', sub: '~17h00 · +83 km', dest: true },
 ]
+
+function TrajetRoute({ waypoints }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!map || !window.google) return
+
+    const directionsService = new window.google.maps.DirectionsService()
+    const directionsRenderer = new window.google.maps.DirectionsRenderer({
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: '#1D9E75',
+        strokeWeight: 4,
+      }
+    })
+
+    directionsRenderer.setMap(map)
+
+    directionsService.route({
+      origin: waypoints[0],
+      destination: waypoints[waypoints.length - 1],
+      waypoints: waypoints.slice(1, -1).map(p => ({ location: p, stopover: true })),
+      travelMode: window.google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status === 'OK') {
+        directionsRenderer.setDirections(result)
+      }
+    })
+
+    return () => directionsRenderer.setMap(null)
+  }, [map, waypoints])
+
+  return null
+}
 
 export default function Tournee() {
   const [optimised, setOptimised] = useState(false)
@@ -109,18 +143,25 @@ export default function Tournee() {
           {/* CARTE GOOGLE MAPS */}
 <div className="rounded-xl overflow-hidden border border-gray-100 mb-3" style={{height: '220px'}}>
   <Map
-    defaultCenter={{ lat: 46.8182, lng: 6.1 }}
-    defaultZoom={7}
-    mapId="saddlehub-map"
-    gestureHandling="greedy"
-    disableDefaultUI={true}
-  >
-    <Marker position={{ lat: 46.3167, lng: 6.1833 }} label="D" />
-    <Marker position={{ lat: 46.6167, lng: 5.9167 }} label="1" />
-    <Marker position={{ lat: 46.6667, lng: 5.7 }} label="2" />
-    <Marker position={{ lat: 46.6833, lng: 5.55 }} label="3" />
-    <Marker position={{ lat: 46.7833, lng: 4.8500 }} label="A" />
-  </Map>
+  defaultCenter={{ lat: 46.8182, lng: 6.1 }}
+  defaultZoom={7}
+  mapId="saddlehub-map"
+  gestureHandling="greedy"
+  disableDefaultUI={true}
+>
+  <Marker position={{ lat: 46.3167, lng: 6.1833 }} label="D" />
+  <Marker position={{ lat: 46.6167, lng: 5.9167 }} label="1" />
+  <Marker position={{ lat: 46.6667, lng: 5.7 }} label="2" />
+  <Marker position={{ lat: 46.6833, lng: 5.55 }} label="3" />
+  <Marker position={{ lat: 46.7833, lng: 4.8500 }} label="A" />
+  <TrajetRoute waypoints={[
+    { lat: 46.3167, lng: 6.1833 },
+    { lat: 46.6167, lng: 5.9167 },
+    { lat: 46.6667, lng: 5.7 },
+    { lat: 46.6833, lng: 5.55 },
+    { lat: 46.7833, lng: 4.8500 },
+  ]} />
+</Map>
 </div>
 
           {/* STATS */}
