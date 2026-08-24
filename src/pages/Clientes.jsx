@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getClients } from '../services/odoo'
+
+
 
 const clientsData = [
   {
@@ -112,6 +115,14 @@ const clientsData = [
 export default function Clients() {
   const [selected, setSelected] = useState(clientsData[0])
   const [onglet, setOnglet] = useState('infos')
+
+  const [odooClients, setOdooClients] = useState([])
+
+useEffect(() => {
+  getClients().then(data => {
+    if (data.length > 0) setOdooClients(data)
+  })
+}, [])
 
   return (
     <div className="grid grid-cols-2 gap-4">

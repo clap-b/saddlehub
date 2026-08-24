@@ -1,10 +1,7 @@
-import { useEffect } from 'react'
-import { testConnexion } from '../services/odoo'
+
 
 export default function Accueil({ onNavigate }) {
-  useEffect(() => {
-  testConnexion()
-}, [])
+  
   const alertes = [
     { type: 'amber', msg: 'Wintec Pro en prêt chez Claire Moreau depuis 3 semaines — à récupérer mardi' },
     { type: 'red', msg: 'Isabelle Renard à rappeler — demande urgente reçue il y a 2 jours' },
