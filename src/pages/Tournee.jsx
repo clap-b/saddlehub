@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
+import { Map, Marker, useMap, InfoWindow } from '@vis.gl/react-google-maps'
 
 const clients = [
   { id: 1, name: 'Claire Moreau', zone: 'Champagnole · Jura', dispo: '✓ Dispo matin', dispoColor: 'text-emerald-500', km: '95 km', selected: true, disabled: false, lat: 46.6167, lng: 5.9167 },
@@ -13,7 +13,6 @@ const clients = [
 const DEPART_DEFAULT = { lat: 46.3167, lng: 6.1833 }
 const ARRIVEE_DEFAULT = { lat: 46.7833, lng: 4.8500 }
 
-
 async function geocodeAdresse(adresse) {
   const response = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(adresse)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
@@ -26,6 +25,78 @@ async function geocodeAdresse(adresse) {
   return null
 }
 
+function StationsEssence({ waypoints }) {
+  const map = useMap()
+  const [stations, setStations] = useState([])
+  const [stationSelectionnee, setStationSelectionnee] = useState(null)
+
+  useEffect(() => {
+    if (!map || !window.google || waypoints.length < 2) return
+    const service = new window.google.maps.places.PlacesService(map)
+    
+    // Cherche aux 3 points : début, milieu, fin du trajet
+    const pointsRecherche = [
+      waypoints[0],
+      waypoints[Math.floor(waypoints.length / 2)],
+      waypoints[waypoints.length - 1],
+    ]
+
+    const toutesStations = []
+    let recherchesTerminees = 0
+
+    pointsRecherche.forEach(point => {
+      service.nearbySearch({
+        location: point,
+        radius: 10000,
+        type: 'gas_station',
+      }, (results, status) => {
+        recherchesTerminees++
+        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+          results.slice(0, 2).forEach(r => {
+            if (!toutesStations.find(s => s.place_id === r.place_id)) {
+              toutesStations.push(r)
+            }
+          })
+        }
+        if (recherchesTerminees === pointsRecherche.length) {
+          setStations(toutesStations)
+        }
+      })
+    })
+  }, [map, JSON.stringify(waypoints)])
+
+  return (
+    <>
+      {stations.map(s => (
+        <Marker
+          key={s.place_id}
+          position={s.geometry.location}
+          title={s.name}
+          onClick={() => setStationSelectionnee(s)}
+          icon={{
+            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#FFF7E6" stroke="#EF9F27" stroke-width="2"/><text x="14" y="19" text-anchor="middle" font-size="14">⛽</text></svg>')}`,
+            scaledSize: new window.google.maps.Size(28, 28),
+            anchor: new window.google.maps.Point(14, 14),
+          }}
+        />
+      ))}
+      {stationSelectionnee && (
+        <InfoWindow
+          position={stationSelectionnee.geometry.location}
+          onCloseClick={() => setStationSelectionnee(null)}
+        >
+          <div style={{fontSize: '12px', maxWidth: '180px'}}>
+            <div style={{fontWeight: 'bold', marginBottom: '4px'}}>⛽ {stationSelectionnee.name}</div>
+            {stationSelectionnee.vicinity && (
+              <div style={{color: '#888'}}>{stationSelectionnee.vicinity}</div>
+            )}
+          </div>
+        </InfoWindow>
+      )}
+    </>
+  )
+}
+
 function TrajetRoute({ waypoints, heureDepart, onDureeChange }) {
   const map = useMap()
 
@@ -35,46 +106,35 @@ function TrajetRoute({ waypoints, heureDepart, onDureeChange }) {
     const directionsService = new window.google.maps.DirectionsService()
     const directionsRenderer = new window.google.maps.DirectionsRenderer({
       suppressMarkers: true,
-      polylineOptions: {
-        strokeColor: '#1D9E75',
-        strokeWeight: 4,
-      }
+      polylineOptions: { strokeColor: '#1D9E75', strokeWeight: 4 }
     })
 
     directionsRenderer.setMap(map)
 
     const departureTime = (() => {
-  const [h, m] = heureDepart.split(':')
-  const d = new Date()
-  d.setHours(parseInt(h), parseInt(m), 0)
-  // Si l'heure est déjà passée, mettre demain
-  if (d < new Date()) {
-    d.setDate(d.getDate() + 1)
-  }
-  return d
-})()
+      const [h, m] = heureDepart.split(':')
+      const d = new Date()
+      d.setHours(parseInt(h), parseInt(m), 0)
+      if (d < new Date()) d.setDate(d.getDate() + 1)
+      return d
+    })()
+
     directionsService.route({
       origin: waypoints[0],
       destination: waypoints[waypoints.length - 1],
       waypoints: waypoints.slice(1, -1).map(p => ({ location: p, stopover: true })),
       travelMode: window.google.maps.TravelMode.DRIVING,
-      drivingOptions: {
-        departureTime,
-        trafficModel: 'bestguess',
-      },
+      drivingOptions: { departureTime, trafficModel: 'bestguess' },
     }, (result, status) => {
-  if (status === 'OK') {
-    directionsRenderer.setDirections(result)
-    // Calcule la durée totale
-    const dureeSecondes = result.routes[0].legs.reduce((total, leg) => total + leg.duration.value, 0)
-    const heures = Math.floor(dureeSecondes / 3600)
-    const minutes = Math.floor((dureeSecondes % 3600) / 60)
-    onDureeChange(`${heures}h${minutes.toString().padStart(2, '0')}`)
-    // Calcule la distance totale en km
-    const distanceKm = Math.round(result.routes[0].legs.reduce((total, leg) => total + leg.distance.value, 0) / 1000)
-    onDureeChange(`${heures}h${minutes.toString().padStart(2, '0')}`, distanceKm)
-  }
-})
+      if (status === 'OK') {
+        directionsRenderer.setDirections(result)
+        const dureeSecondes = result.routes[0].legs.reduce((total, leg) => total + leg.duration.value, 0)
+        const heures = Math.floor(dureeSecondes / 3600)
+        const minutes = Math.floor((dureeSecondes % 3600) / 60)
+        const distanceKm = Math.round(result.routes[0].legs.reduce((total, leg) => total + leg.distance.value, 0) / 1000)
+        onDureeChange(`${heures}h${minutes.toString().padStart(2, '0')}`, distanceKm)
+      }
+    })
 
     return () => directionsRenderer.setMap(null)
   }, [map, JSON.stringify(waypoints), heureDepart])
@@ -115,16 +175,15 @@ export default function Tournee() {
     ARRIVEE_DEFAULT,
   ]
 
-  const coutCarburant = Math.round((224 / 100) * 10 * prixCarburant)
+  const coutCarburant = Math.round((distanceReelle / 100) * 10 * prixCarburant)
 
   const stopsActuels = [
-    { name: `🟢 Départ — ${depart}`, sub: `${heureDepart} · Chargement terminé`, pills: [], isDepart: true },
+    { name: `🟢 Départ — ${depart}`, sub: `${heureDepart} · Chargement terminé`, isDepart: true },
     ...selectedClients.map((c, i) => ({
       name: `${c.name} — ${c.zone.split(' · ')[0]}`,
       sub: `Stop ${i + 1}`,
-      pills: [],
     })),
-    { name: '⛽ Station essence', sub: 'Sur le trajet', pills: [], fuel: true },
+    { name: '⛽ Station essence', sub: 'Sur le trajet', fuel: true },
     { name: '🏁 Destination', sub: 'Arrivée', dest: true },
   ]
 
@@ -138,44 +197,23 @@ export default function Tournee() {
           <span className="text-xs text-gray-400">Jour :</span>
           <input type="date" defaultValue="2026-07-22" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500" />
           <span className="text-xs text-gray-400">Heure :</span>
-          <input
-            type="time"
-            value={heureDepart}
-            onChange={e => setHeureDepart(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500"
-          />
+          <input type="time" value={heureDepart} onChange={e => setHeureDepart(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500" />
           <span className="text-xs text-gray-400">Départ :</span>
-          <input
-            type="text"
-            value={depart}
-            onChange={e => setDepart(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-28"
-          />
+          <input type="text" value={depart} onChange={e => setDepart(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-28" />
           <span className="text-xs text-gray-400">Destination :</span>
           <input type="text" defaultValue="" placeholder="Optionnel — dernier client par défaut" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-52" />
           <span className="text-xs text-gray-400">Prix/L :</span>
           <div className="flex items-center gap-1">
-            <input
-              type="number"
-              step="0.01"
-              defaultValue="1.87"
-              onChange={e => setPrixCarburant(parseFloat(e.target.value))}
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-16"
-            />
+            <input type="number" step="0.01" defaultValue="1.87" onChange={e => setPrixCarburant(parseFloat(e.target.value))} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-16" />
             <span className="text-xs text-gray-400">CHF</span>
           </div>
-          <button
-            onClick={() => setOptimised(true)}
-            className="bg-emerald-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors"
-          >
+          <button onClick={() => setOptimised(true)} className="bg-emerald-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors">
             🗺 Optimiser le trajet
           </button>
         </div>
         <div className="flex gap-2 mt-3 flex-wrap">
           {['Jura', 'Saône-et-Loire', 'Ain', 'Doubs', 'Vaud (CH)'].map(z => (
-            <button key={z} className="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:border-emerald-500 hover:text-emerald-600 transition-colors">
-              {z}
-            </button>
+            <button key={z} className="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:border-emerald-500 hover:text-emerald-600 transition-colors">{z}</button>
           ))}
         </div>
       </div>
@@ -184,9 +222,9 @@ export default function Tournee() {
       {optimised && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
           <div className="text-xs font-bold text-emerald-700 mb-1">✓ Optimisation automatique — Google Maps API</div>
-          <div className="text-xs text-emerald-500 mb-2">Tu choisis une date → l'app suggère automatiquement les clients dispos ce jour-là, optimise l'ordre des stops et calcule le trajet. Si aucune destination n'est définie, le dernier client devient le point d'arrivée.</div>
+          <div className="text-xs text-emerald-500 mb-2">Tu choisis une date → l'app suggère les clients dispos, optimise l'ordre et calcule le trajet avec trafic en temps réel.</div>
           <div className="flex gap-2 flex-wrap">
-            {['Clients filtrés par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Durées estimées', 'Fenêtres horaires respectées'].map(s => (
+            {['Clients filtrés par dispo', 'Distances calculées via Maps API', 'Ordre optimisé (TSP)', 'Trafic en temps réel', 'Fenêtres horaires respectées'].map(s => (
               <span key={s} className="text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-1 rounded-md">{s}</span>
             ))}
           </div>
@@ -195,7 +233,7 @@ export default function Tournee() {
 
       <div className="grid grid-cols-2 gap-4">
 
-        {/* CLIENTS DISPONIBLES */}
+        {/* CLIENTS */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-bold text-gray-900">Clients disponibles mardi</div>
@@ -212,24 +250,24 @@ export default function Tournee() {
                   'border-gray-200 cursor-pointer hover:border-emerald-300'
                 }`}
               >
-              <div className="flex items-center gap-1.5">
-  {selected[i] && !c.disabled && (
-    <span className="text-xs bg-emerald-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-bold flex-shrink-0">
-      {selectedClients.findIndex(sc => sc.id === c.id) + 1}
-    </span>
-  )}
-  <span className="text-xs font-semibold text-gray-900">{c.name}</span>
-</div>
+                <div className="flex items-center gap-1.5">
+                  {selected[i] && !c.disabled && (
+                    <span className="text-xs bg-emerald-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                      {selectedClients.findIndex(sc => sc.id === c.id) + 1}
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold text-gray-900">{c.name}</span>
+                </div>
                 <div className="text-xs text-gray-400 mt-0.5">📍 {c.zone}</div>
                 <div className={`text-xs mt-1 ${c.dispoColor}`}>{c.dispo}</div>
-{selected[i] && !c.disabled && (
-  <button
-    onClick={e => { e.stopPropagation(); setDepart(c.zone.split(' · ')[0]) }}
-    className="text-xs text-blue-500 underline mt-1"
-  >
-    📍 Partir d'ici
-  </button>
-)}
+                {selected[i] && !c.disabled && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setDepart(c.zone.split(' · ')[0]) }}
+                    className="text-xs text-blue-500 underline mt-1"
+                  >
+                    📍 Partir d'ici
+                  </button>
+                )}
                 {c.km && (
                   <span className="absolute top-2 right-2 text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-semibold">{c.km}</span>
                 )}
@@ -242,73 +280,37 @@ export default function Tournee() {
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="text-sm font-bold text-gray-900 mb-3">Trajet optimisé — Google Maps</div>
 
-          {/* CARTE GOOGLE MAPS */}
-          <div className="rounded-xl overflow-hidden border border-gray-100 mb-3" style={{height: '220px'}}>
-            <Map
-              defaultCenter={{ lat: 46.8182, lng: 6.1 }}
-              defaultZoom={7}
-              mapId="saddlehub-map"
-              gestureHandling="greedy"
-              disableDefaultUI={true}
-            >
+          <div className="rounded-xl overflow-hidden border border-gray-100 mb-3" style={{height: '350px'}}>
+            <Map defaultCenter={{ lat: 46.8182, lng: 6.1 }} defaultZoom={7} mapId="saddlehub-map" gestureHandling="greedy" disableDefaultUI={true}>
               <Marker
                 position={departCoords}
                 title={`Départ — ${depart}`}
-                icon={{
-                  path: window.google?.maps.SymbolPath.CIRCLE,
-                  fillColor: '#1D9E75',
-                  fillOpacity: 1,
-                  strokeColor: '#0F6E56',
-                  strokeWeight: 2,
-                  scale: 10,
-                }}
+                icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#1D9E75', fillOpacity: 1, strokeColor: '#0F6E56', strokeWeight: 2, scale: 10 }}
               />
               {selectedClients.map((c, i) => (
-                <Marker
-                  key={c.id}
-                  position={{ lat: c.lat, lng: c.lng }}
-                  title={c.name}
-                  label={{ text: String(i + 1), color: 'white', fontWeight: 'bold' }}
-                />
+                <Marker key={c.id} position={{ lat: c.lat, lng: c.lng }} title={c.name} label={{ text: String(i + 1), color: 'white', fontWeight: 'bold' }} />
               ))}
               <Marker
                 position={ARRIVEE_DEFAULT}
                 title="Arrivée — Chalon-sur-Saône"
-                icon={{
-                  path: window.google?.maps.SymbolPath.CIRCLE,
-                  fillColor: '#E24B4A',
-                  fillOpacity: 1,
-                  strokeColor: '#A32D2D',
-                  strokeWeight: 2,
-                  scale: 10,
-                }}
+                icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#E24B4A', fillOpacity: 1, strokeColor: '#A32D2D', strokeWeight: 2, scale: 10 }}
               />
-              <TrajetRoute 
-  waypoints={waypoints} 
-  heureDepart={heureDepart} 
-  onDureeChange={(duree, km) => { setDureeReelle(duree); if(km) setDistanceReelle(km) }}
-/>
+              <StationsEssence waypoints={waypoints} />
+              <TrajetRoute
+                waypoints={waypoints}
+                heureDepart={heureDepart}
+                onDureeChange={(duree, km) => { setDureeReelle(duree); if(km) setDistanceReelle(km) }}
+              />
             </Map>
           </div>
 
           {/* LÉGENDE */}
           <div className="flex gap-4 mb-3 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-              Départ
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <div className="w-3 h-3 rounded-full bg-red-400"></div>
-              Stops clients
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <div className="w-3 h-3 rounded-full bg-red-600"></div>
-              Arrivée
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <div className="w-3 h-3 rounded-full bg-emerald-400 opacity-60"></div>
-              Trajet optimisé
-            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-emerald-500"></div>Départ</div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-red-400"></div>Stops clients</div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-red-600"></div>Arrivée</div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-emerald-400 opacity-60"></div>Trajet optimisé</div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-amber-400"></div>Stations essence</div>
           </div>
 
           {/* STATS */}
@@ -316,7 +318,7 @@ export default function Tournee() {
             {[
               { val: `${selectedClients.length} RDV`, lab: 'Stops' },
               { val: `${distanceReelle} km`, lab: 'Total trajet' },
-{ val: dureeReelle, lab: 'Durée totale' },
+              { val: dureeReelle, lab: 'Durée totale' },
               { val: heureDepart, lab: 'Départ' },
               { val: `~${coutCarburant} CHF`, lab: '⛽ Carburant', color: 'text-amber-700' },
             ].map(s => (
@@ -343,20 +345,13 @@ export default function Tournee() {
                 <div className="pb-3 flex-1">
                   <div className={`text-xs font-semibold ${s.dest ? 'text-red-500' : s.fuel ? 'text-amber-700' : 'text-gray-900'}`}>{s.name}</div>
                   <div className="text-xs text-gray-400">{s.sub}</div>
-                  {s.pills && s.pills.length > 0 && (
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {s.pills.map(p => (
-                        <span key={p} className={`text-xs px-1.5 py-0.5 rounded-md ${s.fuel ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{p}</span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-2 bg-emerald-50 text-emerald-700 text-xs rounded-lg p-2.5">
-            ✓ Trajet optimisé — {selectedClients.length} clients · Économie estimée : 86 km et 1h45.
+            ✓ Trajet optimisé — {selectedClients.length} clients · {distanceReelle} km · {dureeReelle}
           </div>
         </div>
       </div>
