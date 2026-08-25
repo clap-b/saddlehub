@@ -2,28 +2,35 @@ import { useState, useEffect } from 'react'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 
 const clients = [
-  { id: 1, name: 'Claire Moreau', zone: 'Champagnole · Jura', dispo: '✓ Dispo matin', dispoColor: 'text-emerald-500', km: '95 km', selected: true },
-  { id: 2, name: 'Laura Petit', zone: 'Poligny · Jura', dispo: '✓ Dispo mardi', dispoColor: 'text-emerald-500', km: '+18 km', selected: true },
-  { id: 3, name: 'Emma Favre', zone: 'Lons-le-Saunier · Jura', dispo: '✓ Dispo apr.-midi', dispoColor: 'text-emerald-500', km: '+28 km', selected: true },
-  { id: 4, name: 'Sophie Blanc', zone: 'Orgelet · Jura', dispo: '↻ Demande en attente', dispoColor: 'text-amber-500', km: '+22 km', selected: false },
-  { id: 5, name: 'Marie Duval', zone: 'Pontarlier · Doubs', dispo: '↻ Demande en attente', dispoColor: 'text-amber-500', km: '+35 km', selected: false },
-  { id: 6, name: 'Hélène Roy', zone: 'Arbois · Jura', dispo: '✗ Indisponible', dispoColor: 'text-red-500', km: '', selected: false, disabled: true },
+  { id: 1, name: 'Claire Moreau', zone: 'Champagnole · Jura', dispo: '✓ Dispo matin', dispoColor: 'text-emerald-500', km: '95 km', selected: true, disabled: false, lat: 46.6167, lng: 5.9167 },
+  { id: 2, name: 'Laura Petit', zone: 'Poligny · Jura', dispo: '✓ Dispo mardi', dispoColor: 'text-emerald-500', km: '+18 km', selected: true, disabled: false, lat: 46.6667, lng: 5.7 },
+  { id: 3, name: 'Emma Favre', zone: 'Lons-le-Saunier · Jura', dispo: '✓ Dispo apr.-midi', dispoColor: 'text-emerald-500', km: '+28 km', selected: true, disabled: false, lat: 46.6833, lng: 5.55 },
+  { id: 4, name: 'Sophie Blanc', zone: 'Orgelet · Jura', dispo: '↻ Demande en attente', dispoColor: 'text-amber-500', km: '+22 km', selected: false, disabled: false, lat: 46.5333, lng: 5.6167 },
+  { id: 5, name: 'Marie Duval', zone: 'Pontarlier · Doubs', dispo: '↻ Demande en attente', dispoColor: 'text-amber-500', km: '+35 km', selected: false, disabled: false, lat: 46.9, lng: 6.3567 },
+  { id: 6, name: 'Hélène Roy', zone: 'Arbois · Jura', dispo: '✗ Indisponible', dispoColor: 'text-red-500', km: '', selected: false, disabled: true, lat: 46.9, lng: 5.7667 },
 ]
 
-const stops = [
-  { name: '🟢 Départ — Coppet (CH)', sub: '07h30 · Chargement terminé', pills: [] },
-  { name: 'Claire Moreau — Champagnole', sub: '09h00 · Écurie du Moulin', pills: ['95 km depuis départ', '~1h00', 'Passier Optima + arçon'] },
-  { name: 'Laura Petit — Poligny', sub: '11h00 · Les Écuries du Val', pills: ['+18 km', '~1h00', 'Réglage arçon'] },
-  { name: 'Emma Favre — Lons-le-Saunier', sub: '14h00 · Écurie privée', pills: ['+28 km', '~1h30', 'Essai nouvelle selle'] },
-  { name: '⛽ Station Total — Bourg-en-Bresse', sub: '~15h45 · +5 min · Sur le trajet A39', pills: ['~18 L · 1.87 CHF/L · ~33 CHF', 'Ouverte 24h'], fuel: true },
-  { name: '🏁 Destination — Chalon-sur-Saône', sub: '~17h00 · +83 km', dest: true },
-]
+const DEPART_DEFAULT = { lat: 46.3167, lng: 6.1833 }
+const ARRIVEE_DEFAULT = { lat: 46.7833, lng: 4.8500 }
 
-function TrajetRoute({ waypoints }) {
+
+async function geocodeAdresse(adresse) {
+  const response = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(adresse)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+  )
+  const data = await response.json()
+  if (data.results && data.results.length > 0) {
+    const { lat, lng } = data.results[0].geometry.location
+    return { lat, lng }
+  }
+  return null
+}
+
+function TrajetRoute({ waypoints, heureDepart, onDureeChange }) {
   const map = useMap()
 
   useEffect(() => {
-    if (!map || !window.google) return
+    if (!map || !window.google || waypoints.length < 2) return
 
     const directionsService = new window.google.maps.DirectionsService()
     const directionsRenderer = new window.google.maps.DirectionsRenderer({
@@ -36,19 +43,41 @@ function TrajetRoute({ waypoints }) {
 
     directionsRenderer.setMap(map)
 
+    const departureTime = (() => {
+  const [h, m] = heureDepart.split(':')
+  const d = new Date()
+  d.setHours(parseInt(h), parseInt(m), 0)
+  // Si l'heure est déjà passée, mettre demain
+  if (d < new Date()) {
+    d.setDate(d.getDate() + 1)
+  }
+  return d
+})()
     directionsService.route({
       origin: waypoints[0],
       destination: waypoints[waypoints.length - 1],
       waypoints: waypoints.slice(1, -1).map(p => ({ location: p, stopover: true })),
       travelMode: window.google.maps.TravelMode.DRIVING,
+      drivingOptions: {
+        departureTime,
+        trafficModel: 'bestguess',
+      },
     }, (result, status) => {
-      if (status === 'OK') {
-        directionsRenderer.setDirections(result)
-      }
-    })
+  if (status === 'OK') {
+    directionsRenderer.setDirections(result)
+    // Calcule la durée totale
+    const dureeSecondes = result.routes[0].legs.reduce((total, leg) => total + leg.duration.value, 0)
+    const heures = Math.floor(dureeSecondes / 3600)
+    const minutes = Math.floor((dureeSecondes % 3600) / 60)
+    onDureeChange(`${heures}h${minutes.toString().padStart(2, '0')}`)
+    // Calcule la distance totale en km
+    const distanceKm = Math.round(result.routes[0].legs.reduce((total, leg) => total + leg.distance.value, 0) / 1000)
+    onDureeChange(`${heures}h${minutes.toString().padStart(2, '0')}`, distanceKm)
+  }
+})
 
     return () => directionsRenderer.setMap(null)
-  }, [map, waypoints])
+  }, [map, JSON.stringify(waypoints), heureDepart])
 
   return null
 }
@@ -57,6 +86,19 @@ export default function Tournee() {
   const [optimised, setOptimised] = useState(false)
   const [selected, setSelected] = useState(clients.map(c => c.selected))
   const [prixCarburant, setPrixCarburant] = useState(1.87)
+  const [depart, setDepart] = useState('Coppet, CH')
+  const [departCoords, setDepartCoords] = useState(DEPART_DEFAULT)
+  const [heureDepart, setHeureDepart] = useState('07:30')
+  const [dureeReelle, setDureeReelle] = useState('5h30')
+  const [distanceReelle, setDistanceReelle] = useState(224)
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const coords = await geocodeAdresse(depart)
+      if (coords) setDepartCoords(coords)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [depart])
 
   function toggleclient(i) {
     if (clients[i].disabled) return
@@ -65,7 +107,26 @@ export default function Tournee() {
     setSelected(next)
   }
 
+  const selectedClients = clients.filter((c, i) => selected[i] && !c.disabled)
+
+  const waypoints = [
+    departCoords,
+    ...selectedClients.map(c => ({ lat: c.lat, lng: c.lng })),
+    ARRIVEE_DEFAULT,
+  ]
+
   const coutCarburant = Math.round((224 / 100) * 10 * prixCarburant)
+
+  const stopsActuels = [
+    { name: `🟢 Départ — ${depart}`, sub: `${heureDepart} · Chargement terminé`, pills: [], isDepart: true },
+    ...selectedClients.map((c, i) => ({
+      name: `${c.name} — ${c.zone.split(' · ')[0]}`,
+      sub: `Stop ${i + 1}`,
+      pills: [],
+    })),
+    { name: '⛽ Station essence', sub: 'Sur le trajet', pills: [], fuel: true },
+    { name: '🏁 Destination', sub: 'Arrivée', dest: true },
+  ]
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,8 +137,20 @@ export default function Tournee() {
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs text-gray-400">Jour :</span>
           <input type="date" defaultValue="2026-07-22" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500" />
+          <span className="text-xs text-gray-400">Heure :</span>
+          <input
+            type="time"
+            value={heureDepart}
+            onChange={e => setHeureDepart(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500"
+          />
           <span className="text-xs text-gray-400">Départ :</span>
-          <input type="text" defaultValue="Coppet, CH" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-28" />
+          <input
+            type="text"
+            value={depart}
+            onChange={e => setDepart(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-28"
+          />
           <span className="text-xs text-gray-400">Destination :</span>
           <input type="text" defaultValue="" placeholder="Optionnel — dernier client par défaut" className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-emerald-500 w-52" />
           <span className="text-xs text-gray-400">Prix/L :</span>
@@ -164,8 +237,8 @@ export default function Tournee() {
               disableDefaultUI={true}
             >
               <Marker
-                position={{ lat: 46.3167, lng: 6.1833 }}
-                title="Départ — Coppet"
+                position={departCoords}
+                title={`Départ — ${depart}`}
                 icon={{
                   path: window.google?.maps.SymbolPath.CIRCLE,
                   fillColor: '#1D9E75',
@@ -175,11 +248,16 @@ export default function Tournee() {
                   scale: 10,
                 }}
               />
-              <Marker position={{ lat: 46.6167, lng: 5.9167 }} title="Claire Moreau — Champagnole" label={{ text: '1', color: 'white', fontWeight: 'bold' }} />
-              <Marker position={{ lat: 46.6667, lng: 5.7 }} title="Laura Petit — Poligny" label={{ text: '2', color: 'white', fontWeight: 'bold' }} />
-              <Marker position={{ lat: 46.6833, lng: 5.55 }} title="Emma Favre — Lons-le-Saunier" label={{ text: '3', color: 'white', fontWeight: 'bold' }} />
+              {selectedClients.map((c, i) => (
+                <Marker
+                  key={c.id}
+                  position={{ lat: c.lat, lng: c.lng }}
+                  title={c.name}
+                  label={{ text: String(i + 1), color: 'white', fontWeight: 'bold' }}
+                />
+              ))}
               <Marker
-                position={{ lat: 46.7833, lng: 4.8500 }}
+                position={ARRIVEE_DEFAULT}
                 title="Arrivée — Chalon-sur-Saône"
                 icon={{
                   path: window.google?.maps.SymbolPath.CIRCLE,
@@ -190,13 +268,11 @@ export default function Tournee() {
                   scale: 10,
                 }}
               />
-              <TrajetRoute waypoints={[
-                { lat: 46.3167, lng: 6.1833 },
-                { lat: 46.6167, lng: 5.9167 },
-                { lat: 46.6667, lng: 5.7 },
-                { lat: 46.6833, lng: 5.55 },
-                { lat: 46.7833, lng: 4.8500 },
-              ]} />
+              <TrajetRoute 
+  waypoints={waypoints} 
+  heureDepart={heureDepart} 
+  onDureeChange={(duree, km) => { setDureeReelle(duree); if(km) setDistanceReelle(km) }}
+/>
             </Map>
           </div>
 
@@ -223,10 +299,10 @@ export default function Tournee() {
           {/* STATS */}
           <div className="flex gap-4 mb-3 flex-wrap">
             {[
-              { val: '224 km', lab: 'Total trajet' },
-              { val: '5h30', lab: 'Durée totale' },
-              { val: '3 RDV', lab: 'Stops' },
-              { val: '07h30', lab: 'Départ' },
+              { val: `${selectedClients.length} RDV`, lab: 'Stops' },
+              { val: `${distanceReelle} km`, lab: 'Total trajet' },
+{ val: dureeReelle, lab: 'Durée totale' },
+              { val: heureDepart, lab: 'Départ' },
               { val: `~${coutCarburant} CHF`, lab: '⛽ Carburant', color: 'text-amber-700' },
             ].map(s => (
               <div key={s.lab}>
@@ -238,16 +314,16 @@ export default function Tournee() {
 
           {/* STOPS */}
           <div className="flex flex-col gap-0">
-            {stops.map((s, i) => (
+            {stopsActuels.map((s, i) => (
               <div key={i} className="flex gap-3">
                 <div className="flex flex-col items-center pt-1">
                   <div className={`w-2.5 h-2.5 rounded-full border-2 flex-shrink-0 ${
                     s.dest ? 'bg-red-500 border-red-500' :
                     s.fuel ? 'bg-amber-50 border-amber-400' :
-                    i === 0 ? 'bg-emerald-500 border-emerald-500' :
+                    s.isDepart ? 'bg-emerald-500 border-emerald-500' :
                     'bg-white border-emerald-500'
                   }`}></div>
-                  {i < stops.length - 1 && <div className="w-px h-6 bg-gray-200"></div>}
+                  {i < stopsActuels.length - 1 && <div className="w-px h-6 bg-gray-200"></div>}
                 </div>
                 <div className="pb-3 flex-1">
                   <div className={`text-xs font-semibold ${s.dest ? 'text-red-500' : s.fuel ? 'text-amber-700' : 'text-gray-900'}`}>{s.name}</div>
@@ -265,7 +341,7 @@ export default function Tournee() {
           </div>
 
           <div className="mt-2 bg-emerald-50 text-emerald-700 text-xs rounded-lg p-2.5">
-            ✓ Trajet optimisé — 224 km au lieu de ~310 km. Économie : 86 km et 1h45.
+            ✓ Trajet optimisé — {selectedClients.length} clients · Économie estimée : 86 km et 1h45.
           </div>
         </div>
       </div>
