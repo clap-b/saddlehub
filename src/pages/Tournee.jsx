@@ -33,8 +33,7 @@ function StationsEssence({ waypoints }) {
   useEffect(() => {
     if (!map || !window.google || waypoints.length < 2) return
     const service = new window.google.maps.places.PlacesService(map)
-    
-    // Cherche aux 3 points : début, milieu, fin du trajet
+
     const pointsRecherche = [
       waypoints[0],
       waypoints[Math.floor(waypoints.length / 2)],
@@ -151,6 +150,8 @@ export default function Tournee() {
   const [heureDepart, setHeureDepart] = useState('07:30')
   const [dureeReelle, setDureeReelle] = useState('5h30')
   const [distanceReelle, setDistanceReelle] = useState(224)
+  const [stopImprovisé, setStopImprovisé] = useState('')
+  const [stopsExtra, setStopsExtra] = useState([])
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -167,11 +168,21 @@ export default function Tournee() {
     setSelected(next)
   }
 
+  async function ajouterStop() {
+    if (!stopImprovisé) return
+    const coords = await geocodeAdresse(stopImprovisé)
+    if (coords) {
+      setStopsExtra(prev => [...prev, { adresse: stopImprovisé, coords }])
+      setStopImprovisé('')
+    }
+  }
+
   const selectedClients = clients.filter((c, i) => selected[i] && !c.disabled)
 
   const waypoints = [
     departCoords,
     ...selectedClients.map(c => ({ lat: c.lat, lng: c.lng })),
+    ...stopsExtra.map(s => s.coords),
     ARRIVEE_DEFAULT,
   ]
 
@@ -182,6 +193,11 @@ export default function Tournee() {
     ...selectedClients.map((c, i) => ({
       name: `${c.name} — ${c.zone.split(' · ')[0]}`,
       sub: `Stop ${i + 1}`,
+    })),
+    ...stopsExtra.map((s, i) => ({
+      name: `📍 Stop improvisé — ${s.adresse}`,
+      sub: `Extra ${i + 1}`,
+      extra: true,
     })),
     { name: '⛽ Station essence', sub: 'Sur le trajet', fuel: true },
     { name: '🏁 Destination', sub: 'Arrivée', dest: true },
@@ -290,6 +306,14 @@ export default function Tournee() {
               {selectedClients.map((c, i) => (
                 <Marker key={c.id} position={{ lat: c.lat, lng: c.lng }} title={c.name} label={{ text: String(i + 1), color: 'white', fontWeight: 'bold' }} />
               ))}
+              {stopsExtra.map((s, i) => (
+                <Marker
+                  key={`extra-${i}`}
+                  position={s.coords}
+                  title={s.adresse}
+                  icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#3B82F6', fillOpacity: 1, strokeColor: '#1D4ED8', strokeWeight: 2, scale: 8 }}
+                />
+              ))}
               <Marker
                 position={ARRIVEE_DEFAULT}
                 title="Arrivée — Chalon-sur-Saône"
@@ -311,6 +335,7 @@ export default function Tournee() {
             <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-red-600"></div>Arrivée</div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-emerald-400 opacity-60"></div>Trajet optimisé</div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-amber-400"></div>Stations essence</div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500"><div className="w-3 h-3 rounded-full bg-blue-500"></div>Stop improvisé</div>
           </div>
 
           {/* STATS */}
@@ -329,6 +354,39 @@ export default function Tournee() {
             ))}
           </div>
 
+          {/* STOP IMPROVISÉ */}
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={stopImprovisé}
+              onChange={e => setStopImprovisé(e.target.value)}
+              placeholder="Ajouter un stop improvisé..."
+              className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-blue-400"
+              onKeyDown={e => e.key === 'Enter' && ajouterStop()}
+            />
+            <button
+              onClick={ajouterStop}
+              className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition-colors flex-shrink-0"
+            >
+              + Ajouter
+            </button>
+          </div>
+          {stopsExtra.length > 0 && (
+            <div className="flex flex-col gap-1 mb-3">
+              {stopsExtra.map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-1.5">
+                  <span>📍 {s.adresse}</span>
+                  <button
+                    onClick={() => setStopsExtra(prev => prev.filter((_, idx) => idx !== i))}
+                    className="text-blue-400 hover:text-red-500 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* STOPS */}
           <div className="flex flex-col gap-0">
             {stopsActuels.map((s, i) => (
@@ -337,13 +395,14 @@ export default function Tournee() {
                   <div className={`w-2.5 h-2.5 rounded-full border-2 flex-shrink-0 ${
                     s.dest ? 'bg-red-500 border-red-500' :
                     s.fuel ? 'bg-amber-50 border-amber-400' :
+                    s.extra ? 'bg-blue-500 border-blue-500' :
                     s.isDepart ? 'bg-emerald-500 border-emerald-500' :
                     'bg-white border-emerald-500'
                   }`}></div>
                   {i < stopsActuels.length - 1 && <div className="w-px h-6 bg-gray-200"></div>}
                 </div>
                 <div className="pb-3 flex-1">
-                  <div className={`text-xs font-semibold ${s.dest ? 'text-red-500' : s.fuel ? 'text-amber-700' : 'text-gray-900'}`}>{s.name}</div>
+                  <div className={`text-xs font-semibold ${s.dest ? 'text-red-500' : s.fuel ? 'text-amber-700' : s.extra ? 'text-blue-600' : 'text-gray-900'}`}>{s.name}</div>
                   <div className="text-xs text-gray-400">{s.sub}</div>
                 </div>
               </div>
