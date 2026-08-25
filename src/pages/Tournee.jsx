@@ -212,9 +212,24 @@ export default function Tournee() {
                   'border-gray-200 cursor-pointer hover:border-emerald-300'
                 }`}
               >
-                <div className="text-xs font-semibold text-gray-900">{c.name}</div>
+              <div className="flex items-center gap-1.5">
+  {selected[i] && !c.disabled && (
+    <span className="text-xs bg-emerald-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-bold flex-shrink-0">
+      {selectedClients.findIndex(sc => sc.id === c.id) + 1}
+    </span>
+  )}
+  <span className="text-xs font-semibold text-gray-900">{c.name}</span>
+</div>
                 <div className="text-xs text-gray-400 mt-0.5">📍 {c.zone}</div>
                 <div className={`text-xs mt-1 ${c.dispoColor}`}>{c.dispo}</div>
+{selected[i] && !c.disabled && (
+  <button
+    onClick={e => { e.stopPropagation(); setDepart(c.zone.split(' · ')[0]) }}
+    className="text-xs text-blue-500 underline mt-1"
+  >
+    📍 Partir d'ici
+  </button>
+)}
                 {c.km && (
                   <span className="absolute top-2 right-2 text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-semibold">{c.km}</span>
                 )}
