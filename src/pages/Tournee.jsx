@@ -227,11 +227,7 @@ export default function Tournee() {
             🗺 Optimiser le trajet
           </button>
         </div>
-        <div className="flex gap-2 mt-3 flex-wrap">
-          {['Jura', 'Saône-et-Loire', 'Ain', 'Doubs', 'Vaud (CH)'].map(z => (
-            <button key={z} className="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:border-emerald-500 hover:text-emerald-600 transition-colors">{z}</button>
-          ))}
-        </div>
+        
       </div>
 
       {/* ALGO BOX */}
