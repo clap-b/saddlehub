@@ -1,6 +1,8 @@
+const API_URL = 'https://saddlehub-api-production.up.railway.app'
+
 export async function getClients() {
   try {
-    const response = await fetch('http://localhost:3001/api/clients')
+    const response = await fetch(`${API_URL}/api/clients`)
     const data = await response.json()
     return data
   } catch (err) {
@@ -11,7 +13,7 @@ export async function getClients() {
 
 export async function getContacts() {
   try {
-    const response = await fetch('http://localhost:3001/api/contacts')
+    const response = await fetch(`${API_URL}/api/contacts`)
     const data = await response.json()
     return data
   } catch (err) {
@@ -22,7 +24,7 @@ export async function getContacts() {
 
 export async function getProduits() {
   try {
-    const response = await fetch('http://localhost:3001/api/produits')
+    const response = await fetch(`${API_URL}/api/produits`)
     const data = await response.json()
     return data
   } catch (err) {
