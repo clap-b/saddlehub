@@ -17,23 +17,30 @@ const rdvInitiaux = {
   28: [{ heure: '09h30', client: 'Hélène Roy', lieu: 'Arbois', tag: 'Confirmé', tagColor: 'bg-emerald-50 text-emerald-700' }],
 }
 
-const offset = 2
-const totalJours = 31
-
 export default function Calendrier() {
   const [jourSelectionne, setJourSelectionne] = useState(22)
   const [rdvs, setRdvs] = useState(rdvInitiaux)
   const [showForm, setShowForm] = useState(false)
   const [newRdv, setNewRdv] = useState({ heure: '09h00', client: '', lieu: '' })
+  const [moisActuel, setMoisActuel] = useState(6)
+  const [anneeActuelle, setAnneeActuelle] = useState(2026)
+
+  const totalJours = new Date(anneeActuelle, moisActuel + 1, 0).getDate()
+  const offsetBrut = new Date(anneeActuelle, moisActuel, 1).getDay()
+  const offsetCorrige = offsetBrut === 0 ? 6 : offsetBrut - 1
 
   const cases = []
-  for (let i = 0; i < offset; i++) cases.push(null)
+  for (let i = 0; i < offsetCorrige; i++) cases.push(null)
   for (let i = 1; i <= totalJours; i++) cases.push(i)
+
+  const today = new Date()
+  const isCurrentMonth = today.getMonth() === moisActuel && today.getFullYear() === anneeActuelle
+  const todayDay = isCurrentMonth ? today.getDate() : null
 
   function getStyle(jour) {
     if (!jour) return ''
     const hasRdv = rdvs[jour] && rdvs[jour].length > 0
-    if (jour === 17) return 'bg-emerald-600 text-white font-bold'
+    if (jour === todayDay) return 'bg-emerald-600 text-white font-bold'
     if (hasRdv) return 'bg-emerald-50 text-emerald-700 font-semibold'
     return 'text-gray-400 hover:bg-gray-50'
   }
@@ -56,16 +63,28 @@ export default function Calendrier() {
     }))
   }
 
+  function moisPrecedent() {
+    if (moisActuel === 0) { setMoisActuel(11); setAnneeActuelle(anneeActuelle - 1) }
+    else setMoisActuel(moisActuel - 1)
+  }
+
+  function moisSuivant() {
+    if (moisActuel === 11) { setMoisActuel(0); setAnneeActuelle(anneeActuelle + 1) }
+    else setMoisActuel(moisActuel + 1)
+  }
+
+  const nomMois = new Date(anneeActuelle, moisActuel).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       {/* CALENDRIER */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-sm font-bold text-gray-900">Juillet 2026</div>
+          <div className="text-sm font-bold text-gray-900 capitalize">{nomMois}</div>
           <div className="flex gap-2">
-            <button className="text-xs border border-gray-200 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-50">← Juin</button>
-            <button className="text-xs border border-gray-200 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-50">Août →</button>
+            <button onClick={moisPrecedent} className="text-xs border border-gray-200 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-50">←</button>
+            <button onClick={moisSuivant} className="text-xs border border-gray-200 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-50">→</button>
           </div>
         </div>
 
@@ -109,7 +128,7 @@ export default function Calendrier() {
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-bold text-gray-900">
-            {jourSelectionne ? `${jourSelectionne} juillet 2026` : 'Sélectionne un jour'}
+            {jourSelectionne ? `${jourSelectionne} ${nomMois}` : 'Sélectionne un jour'}
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -119,10 +138,9 @@ export default function Calendrier() {
           </button>
         </div>
 
-        {/* FORMULAIRE AJOUT */}
         {showForm && (
           <div className="bg-gray-50 rounded-xl p-3 mb-3 flex flex-col gap-2">
-            <div className="text-xs font-bold text-gray-700">Nouveau RDV — {jourSelectionne} juillet</div>
+            <div className="text-xs font-bold text-gray-700">Nouveau RDV — {jourSelectionne} {nomMois}</div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <div className="text-xs text-gray-400 mb-1">Heure</div>
@@ -156,23 +174,16 @@ export default function Calendrier() {
               />
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={ajouterRdv}
-                className="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
-              >
+              <button onClick={ajouterRdv} className="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg hover:bg-emerald-700 transition-colors font-semibold">
                 Ajouter
               </button>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-50"
-              >
+              <button onClick={() => setShowForm(false)} className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-50">
                 Annuler
               </button>
             </div>
           </div>
         )}
 
-        {/* LISTE RDV */}
         {jourSelectionne && rdvs[jourSelectionne] && rdvs[jourSelectionne].length > 0 ? (
           <div className="flex flex-col gap-2">
             {rdvs[jourSelectionne].map((r, i) => (
