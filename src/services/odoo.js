@@ -32,3 +32,14 @@ export async function getProduits() {
     return []
   }
 }
+
+export async function getRdvs() {
+  try {
+    const response = await fetch(`${API_URL}/api/rdvs`)
+    const data = await response.json()
+    return data
+  } catch (err) {
+    console.error('Erreur récupération RDVs Odoo:', err)
+    return []
+  }
+}

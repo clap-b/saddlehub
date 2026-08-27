@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getRdvs } from '../services/odoo'
 
 const jours = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
@@ -24,6 +25,31 @@ export default function Calendrier() {
   const [newRdv, setNewRdv] = useState({ heure: '09h00', client: '', lieu: '' })
   const [moisActuel, setMoisActuel] = useState(6)
   const [anneeActuelle, setAnneeActuelle] = useState(2026)
+  const [rdvsOdoo, setRdvsOdoo] = useState({})
+
+  useEffect(() => {
+    getRdvs().then(data => {
+      if (data.length > 0) {
+        const rdvsParJour = {}
+        data.forEach(rdv => {
+          const date = new Date(rdv.start)
+          if (date.getMonth() === moisActuel && date.getFullYear() === anneeActuelle) {
+            const jour = date.getDate()
+            const heure = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            if (!rdvsParJour[jour]) rdvsParJour[jour] = []
+            rdvsParJour[jour].push({
+              heure,
+              client: rdv.name,
+              lieu: rdv.location || '',
+              tag: 'Odoo',
+              tagColor: 'bg-purple-50 text-purple-700'
+            })
+          }
+        })
+        setRdvsOdoo(rdvsParJour)
+      }
+    })
+  }, [moisActuel, anneeActuelle])
 
   const totalJours = new Date(anneeActuelle, moisActuel + 1, 0).getDate()
   const offsetBrut = new Date(anneeActuelle, moisActuel, 1).getDay()
@@ -39,7 +65,7 @@ export default function Calendrier() {
 
   function getStyle(jour) {
     if (!jour) return ''
-    const hasRdv = rdvs[jour] && rdvs[jour].length > 0
+    const hasRdv = (rdvs[jour] && rdvs[jour].length > 0) || (rdvsOdoo[jour] && rdvsOdoo[jour].length > 0)
     if (jour === todayDay) return 'bg-emerald-600 text-white font-bold'
     if (hasRdv) return 'bg-emerald-50 text-emerald-700 font-semibold'
     return 'text-gray-400 hover:bg-gray-50'
@@ -74,6 +100,11 @@ export default function Calendrier() {
   }
 
   const nomMois = new Date(anneeActuelle, moisActuel).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+
+  const rdvsDuJour = [
+    ...(rdvs[jourSelectionne] || []),
+    ...(rdvsOdoo[jourSelectionne] || []),
+  ]
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -120,6 +151,10 @@ export default function Calendrier() {
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <div className="w-3 h-3 rounded bg-emerald-600"></div>
             Aujourd'hui
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <div className="w-3 h-3 rounded bg-purple-100 border border-purple-300"></div>
+            Odoo
           </div>
         </div>
       </div>
@@ -184,9 +219,9 @@ export default function Calendrier() {
           </div>
         )}
 
-        {jourSelectionne && rdvs[jourSelectionne] && rdvs[jourSelectionne].length > 0 ? (
+        {rdvsDuJour.length > 0 ? (
           <div className="flex flex-col gap-2">
-            {rdvs[jourSelectionne].map((r, i) => (
+            {rdvsDuJour.map((r, i) => (
               <div key={i} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl group">
                 <div className="text-xs font-bold text-gray-400 w-10 flex-shrink-0">{r.heure}</div>
                 <div className="flex-1 min-w-0">
@@ -194,16 +229,18 @@ export default function Calendrier() {
                   <div className="text-xs text-gray-400">📍 {r.lieu}</div>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${r.tagColor}`}>{r.tag}</span>
-                <button
-                  onClick={() => supprimerRdv(i)}
-                  className="text-gray-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
-                >
-                  ✕
-                </button>
+                {!r.tag.includes('Odoo') && (
+                  <button
+                    onClick={() => supprimerRdv(i)}
+                    className="text-gray-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             ))}
             <div className="mt-1 bg-emerald-50 text-emerald-700 text-xs rounded-lg p-2.5">
-              ✓ {rdvs[jourSelectionne].length} RDV ce jour
+              ✓ {rdvsDuJour.length} RDV ce jour
             </div>
           </div>
         ) : (
