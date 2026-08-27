@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useGoogleLogin } from '@react-oauth/google'
 
 export default function Parametres() {
   const [villeDepart, setVilleDepart] = useState('Coppet, CH')
@@ -7,8 +8,18 @@ export default function Parametres() {
   const [tarifCH, setTarifCH] = useState('120')
   const [tarifFR, setTarifFR] = useState('')
   const [forfaitCH, setForfaitCH] = useState('30')
-  const [forfaitFR, setForfaitFR] = useState('45')
+  const [forfaitFR, setForfaitFR] = useState('')
   const [saved, setSaved] = useState(false)
+  const [googleConnected, setGoogleConnected] = useState(false)
+
+  const loginGoogle = useGoogleLogin({
+    scope: 'https://www.googleapis.com/auth/calendar',
+    onSuccess: (response) => {
+      setGoogleConnected(true)
+      localStorage.setItem('google_token', response.access_token)
+    },
+    onError: () => console.log('Connexion Google échouée'),
+  })
 
   function sauvegarder() {
     setSaved(true)
@@ -147,14 +158,23 @@ export default function Parametres() {
               <div className="text-xs font-semibold text-gray-900">Odoo — Équin'Equilibre</div>
               <div className="text-xs text-gray-400">Clients, stock, facturation</div>
             </div>
-            <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-semibold">⏳ En attente</span>
+            <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">✓ Connecté</span>
           </div>
           <div className="flex items-center justify-between py-2">
             <div>
               <div className="text-xs font-semibold text-gray-900">Google Calendar</div>
               <div className="text-xs text-gray-400">Synchronisation des RDV et tournées</div>
             </div>
-            <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-semibold">⏳ En attente</span>
+            {googleConnected ? (
+              <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">✓ Connecté</span>
+            ) : (
+              <button
+                onClick={() => loginGoogle()}
+                className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+              >
+                Connecter
+              </button>
+            )}
           </div>
         </div>
       </div>
