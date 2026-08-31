@@ -177,6 +177,36 @@ export default function Tournee() {
     }
   }
 
+  async function exporterGoogleCalendar() {
+    const token = localStorage.getItem('google_token')
+    if (!token) {
+      alert("Connecte d'abord Google Calendar dans les Paramètres !")
+      return
+    }
+    for (const client of selectedClients) {
+      const debut = new Date()
+      const [h, m] = heureDepart.split(':')
+      debut.setHours(parseInt(h) + selectedClients.indexOf(client), parseInt(m), 0)
+      const fin = new Date(debut)
+      fin.setHours(fin.getHours() + 1, fin.getMinutes() + 30)
+      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: `RDV ${client.name}`,
+          location: client.zone.split(' · ')[0],
+          start: { dateTime: debut.toISOString() },
+          end: { dateTime: fin.toISOString() },
+          description: `Tournée SaddleHub — ${client.zone}`,
+        })
+      })
+    }
+    alert(`✓ ${selectedClients.length} RDV exportés dans Google Calendar !`)
+  }
+
   const selectedClients = clients.filter((c, i) => selected[i] && !c.disabled)
 
   const waypoints = [
@@ -226,8 +256,10 @@ export default function Tournee() {
           <button onClick={() => setOptimised(true)} className="bg-emerald-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors">
             🗺 Optimiser le trajet
           </button>
+          <button onClick={exporterGoogleCalendar} className="bg-blue-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-600 transition-colors">
+            📅 Google Calendar
+          </button>
         </div>
-        
       </div>
 
       {/* ALGO BOX */}
@@ -243,7 +275,7 @@ export default function Tournee() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
 
         {/* CLIENTS */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
