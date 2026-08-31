@@ -43,3 +43,14 @@ export async function getRdvs() {
     return []
   }
 }
+
+export async function getMetriques() {
+  try {
+    const response = await fetch(`${API_URL}/api/metriques`)
+    const data = await response.json()
+    return data
+  } catch (err) {
+    console.error('Erreur récupération métriques:', err)
+    return { rdvsMois: 0, demandesEnAttente: 0, rdvs: [], pistes: [] }
+  }
+}

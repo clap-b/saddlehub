@@ -1,4 +1,5 @@
-
+import { useEffect, useState } from 'react'
+import { getMetriques } from '../services/odoo'
 
 export default function Accueil({ onNavigate }) {
   
@@ -18,18 +19,24 @@ export default function Accueil({ onNavigate }) {
     { date: 'Dim 26', rdvs: [] },
   ]
 
+  const [metriques, setMetriques] = useState({ rdvsMois: 0, demandesEnAttente: 0 })
+
+useEffect(() => {
+  getMetriques().then(data => setMetriques(data))
+}, [])
+
   return (
     <div className="flex flex-col gap-4">
 
       {/* MÉTRIQUES */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'RDV ce mois', value: '18', sub: '↑ +4 vs juin', color: 'text-emerald-500' },
-          { label: 'Demandes en attente', value: '3', sub: 'À traiter', color: 'text-amber-500' },
-          { label: 'Km ce mois', value: '1 240', sub: 'Optimisés par Maps', color: 'text-gray-400' },
-          { label: 'Carburant ce mois', value: '142 CHF', sub: '⛽ Estimé Maps', color: 'text-amber-700' },
-          { label: 'Prochaine tournée', value: 'Mardi', sub: '3 RDV · Jura', color: 'text-blue-500' },
-        ].map(m => (
+  { label: 'RDV ce mois', value: metriques.rdvsMois || '18', sub: '↑ +4 vs juin', color: 'text-emerald-500' },
+  { label: 'Demandes en attente', value: metriques.demandesEnAttente || '3', sub: 'À traiter', color: 'text-amber-500' },
+  { label: 'Km ce mois', value: '1 240', sub: 'Optimisés par Maps', color: 'text-gray-400' },
+  { label: 'Carburant ce mois', value: '142 CHF', sub: '⛽ Estimé Maps', color: 'text-amber-700' },
+  { label: 'Prochaine tournée', value: 'Mardi', sub: '3 RDV · Jura', color: 'text-blue-500' },
+].map(m => (
           <div key={m.label} className="bg-white rounded-xl border border-gray-100 p-4">
             <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">{m.label}</div>
             <div className="text-2xl font-bold text-gray-900">{m.value}</div>
