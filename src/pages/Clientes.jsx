@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getClients } from '../services/odoo'
 
-
-
 const clientsData = [
   {
     id: 1,
@@ -115,26 +113,58 @@ const clientsData = [
 export default function Clients() {
   const [selected, setSelected] = useState(clientsData[0])
   const [onglet, setOnglet] = useState('infos')
+  const [recherche, setRecherche] = useState('')
+  const [filtreStatut, setFiltreStatut] = useState('Tous')
 
-  const [odooClients, setOdooClients] = useState([])
+  useEffect(() => {
+    getClients().then(data => {
+      console.log('Clients Odoo:', data)
+    })
+  }, [])
 
-useEffect(() => {
-  getClients().then(data => {
-    if (data.length > 0) setOdooClients(data)
+  const clientsFiltres = clientsData.filter(c => {
+    const matchRecherche = c.name.toLowerCase().includes(recherche.toLowerCase()) ||
+      c.ville.toLowerCase().includes(recherche.toLowerCase())
+    const matchStatut = filtreStatut === 'Tous' || c.tag === filtreStatut
+    return matchRecherche && matchStatut
   })
-}, [])
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       {/* LISTE */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-bold text-gray-900">Tous les clients</div>
-          <div className="text-xs text-gray-400">24 clients actifs</div>
+          <div className="text-xs text-gray-400">{clientsFiltres.length} clients</div>
         </div>
+
+        <input
+          type="text"
+          value={recherche}
+          onChange={e => setRecherche(e.target.value)}
+          placeholder="Rechercher un client..."
+          className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 outline-none focus:border-emerald-400 mb-3"
+        />
+
+        <div className="flex gap-1 mb-3 flex-wrap">
+          {['Tous', 'RDV mardi', 'À rappeler', 'Nouvelle', 'À relancer'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFiltreStatut(f)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                filtreStatut === f
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold'
+                  : 'border-gray-200 text-gray-500 hover:border-emerald-300'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-col">
-          {clientsData.map(c => (
+          {clientsFiltres.map(c => (
             <div
               key={c.id}
               onClick={() => { setSelected(c); setOnglet('infos') }}
@@ -148,7 +178,11 @@ useEffect(() => {
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${c.tagColor}`}>{c.tag}</span>
             </div>
           ))}
+          {clientsFiltres.length === 0 && (
+            <div className="text-xs text-gray-400 italic text-center py-4">Aucun client trouvé</div>
+          )}
         </div>
+
         <button className="mt-3 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
           + Nouveau client
         </button>
@@ -167,7 +201,7 @@ useEffect(() => {
             <button
               key={o}
               onClick={() => setOnglet(o)}
-              className={`flex-1 text-xs py-1.5 rounded-md font-semibold transition-all capitalize ${
+              className={`flex-1 text-xs py-1.5 rounded-md font-semibold transition-all ${
                 onglet === o ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
