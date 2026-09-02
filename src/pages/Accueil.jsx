@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getMetriques } from '../services/odoo'
+import { getMetriques, getPistes } from '../services/odoo'
 
 export default function Accueil({ onNavigate }) {
-  
-  const alertes = [
+  const [metriques, setMetriques] = useState({ rdvsMois: 0, demandesEnAttente: 0 })
+  const [alertes, setAlertes] = useState([
     { type: 'amber', msg: 'Wintec Pro en prêt chez Claire Moreau depuis 3 semaines — à récupérer mardi' },
-    { type: 'red', msg: 'Isabelle Renard à rappeler — demande urgente reçue il y a 2 jours' },
     { type: 'blue', msg: '2 séances du 22 juillet à documenter', action: 'seance', label: 'Compléter →' },
-  ]
+  ])
 
   const prochains7Jours = [
     { date: 'Lun 20', rdvs: [] },
@@ -19,11 +18,25 @@ export default function Accueil({ onNavigate }) {
     { date: 'Dim 26', rdvs: [] },
   ]
 
-  const [metriques, setMetriques] = useState({ rdvsMois: 0, demandesEnAttente: 0 })
+  useEffect(() => {
+    getMetriques().then(data => setMetriques(data))
+  }, [])
 
-useEffect(() => {
-  getMetriques().then(data => setMetriques(data))
-}, [])
+  useEffect(() => {
+    getPistes().then(data => {
+      if (data.length > 0) {
+        setAlertes(prev => [
+          ...prev,
+          {
+            type: 'red',
+            msg: data.length + ' nouvelle' + (data.length > 1 ? 's' : '') + ' demande' + (data.length > 1 ? 's' : '') + ' reçue' + (data.length > 1 ? 's' : '') + ' via Odoo CRM',
+            action: 'demandes',
+            label: 'Voir →'
+          }
+        ])
+      }
+    })
+  }, [])
 
   return (
     <div className="flex flex-col gap-4">
