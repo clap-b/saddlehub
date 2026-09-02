@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 const prestationsDetail = [
   { id: 'bilan', label: 'Bilan complet selle/cheval', prix: 120 },
@@ -46,10 +46,103 @@ const historique = [
   { client: 'Nathalie Simon', ville: 'Chalon-sur-Saône', date: 'Mer 10 juil', prestations: ['Réglage & ajustement arçon', 'Forfait déplacement FR'], photos: 5, facture: '#1044', montant: '125 CHF' },
 ]
 
+function ZoneSignature({ onSignature }) {
+  const canvasRef = React.useRef(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [signed, setSigned] = useState(false)
+
+  function getPos(e, canvas) {
+  const rect = canvas.getBoundingClientRect()
+  const scaleX = canvas.width / rect.width
+  const scaleY = canvas.height / rect.height
+  if (e.touches) {
+    return {
+      x: (e.touches[0].clientX - rect.left) * scaleX,
+      y: (e.touches[0].clientY - rect.top) * scaleY
+    }
+  }
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
+  }
+}
+
+  function startDraw(e) {
+    e.preventDefault()
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    const pos = getPos(e, canvas)
+    ctx.beginPath()
+    ctx.moveTo(pos.x, pos.y)
+    setIsDrawing(true)
+  }
+
+  function draw(e) {
+    e.preventDefault()
+    if (!isDrawing) return
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    ctx.strokeStyle = '#1a1a1a'
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    const pos = getPos(e, canvas)
+    ctx.lineTo(pos.x, pos.y)
+    ctx.stroke()
+    setSigned(true)
+  }
+
+  function stopDraw() {
+    setIsDrawing(false)
+    if (signed) {
+      const canvas = canvasRef.current
+      onSignature(canvas.toDataURL())
+    }
+  }
+
+  function effacer() {
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    setSigned(false)
+    onSignature(null)
+  }
+
+  return (
+    <div>
+      <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Signature du client</div>
+      <div className="border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50 relative">
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={120}
+          className="w-full touch-none"
+          onMouseDown={startDraw}
+          onMouseMove={draw}
+          onMouseUp={stopDraw}
+          onMouseLeave={stopDraw}
+          onTouchStart={startDraw}
+          onTouchMove={draw}
+          onTouchEnd={stopDraw}
+        />
+        {!signed && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-xs text-gray-300">✍️ Signez ici</span>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-between items-center mt-2">
+        <span className="text-xs text-gray-400">{signed ? '✓ Signé' : 'En attente de signature'}</span>
+        <button onClick={effacer} className="text-xs text-gray-400 underline">Effacer</button>
+      </div>
+    </div>
+  )
+}
+
 export default function Seance() {
   const [seances, setSeances] = useState(seancesInit)
   const [ouvert, setOuvert] = useState(1)
   const [saved, setSaved] = useState([])
+  const [signatures, setSignatures] = useState({})
 
   function togglePrestation(seanceId, prestId) {
     setSeances(prev => prev.map(s => {
@@ -114,7 +207,7 @@ export default function Seance() {
             {ouvert === s.id && !saved.includes(s.id) && (
               <div className="mt-4">
 
-                {/* PRESTATIONS DÉTAILLÉES */}
+                {/* PRESTATIONS */}
                 <div className="mb-4">
                   <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Prestations réalisées</div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -142,14 +235,13 @@ export default function Seance() {
                         </div>
                         {p.prix !== null && (
                           <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                            {p.prix === 0 ? 'Gratuit' : `${p.prix} CHF`}
+                            {p.prix === 0 ? 'Gratuit' : p.prix + ' CHF'}
                           </span>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  {/* TOTAL AUTO */}
                   {s.prestationsChecked.length > 0 && (
                     <div className="mt-3 flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                       <span className="text-xs text-gray-500">Total calculé automatiquement</span>
@@ -194,6 +286,16 @@ export default function Seance() {
                       <input type="file" accept="image/*,video/*" multiple className="hidden" />
                     </label>
                   </div>
+                </div>
+
+                {/* SIGNATURE */}
+                <div className="mb-4">
+                  <ZoneSignature onSignature={(sig) => setSignatures(prev => ({ ...prev, [s.id]: sig }))} />
+                  {signatures[s.id] && (
+                    <div className="mt-2 text-xs text-emerald-600 bg-emerald-50 rounded-lg p-2">
+                      ✓ Signature enregistrée — sera jointe à la facture Odoo
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
