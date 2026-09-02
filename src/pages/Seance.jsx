@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { envoyerSignature } from '../services/odoo'
 
 const prestationsDetail = [
   { id: 'bilan', label: 'Bilan complet selle/cheval', prix: 120 },
@@ -165,10 +166,24 @@ export default function Seance() {
     }, 0)
   }
 
-  function sauvegarder(seanceId) {
-    setSaved(prev => [...prev, seanceId])
+  async function sauvegarder(seanceId) {
+  const seance = seances.find(s => s.id === seanceId)
+  const signature = signatures[seanceId]
+  
+  if (signature) {
+    const prestationsSelectionnees = prestationsDetail.filter(p => 
+      seance.prestationsChecked.includes(p.id)
+    )
+    await envoyerSignature(
+      signature,
+      seance.client,
+      getMontantAuto(seance.prestationsChecked),
+      prestationsSelectionnees
+    )
   }
-
+  
+  setSaved(prev => [...prev, seanceId])
+}
   return (
     <div className="flex flex-col gap-4">
 

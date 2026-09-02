@@ -65,3 +65,18 @@ export async function getPistes() {
     return []
   }
 }
+
+export async function envoyerSignature(signatureBase64, clientNom, montant, prestations) {
+  try {
+    const response = await fetch(`${API_URL}/api/signature`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signatureBase64, clientNom, montant, prestations })
+    })
+    const data = await response.json()
+    return data
+  } catch (err) {
+    console.error('Erreur envoi signature Odoo:', err)
+    return null
+  }
+}
