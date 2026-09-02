@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { envoyerSeance } from '../services/odoo'
+import { envoyerSeance, envoyerCompteRendu } from '../services/odoo'
 
 const prestationsDetail = [
   { id: 'bilan', label: 'Bilan complet selle/cheval', prix: 120 },
@@ -19,6 +19,7 @@ const seancesInit = [
   {
     id: 1,
     client: 'Claire Moreau',
+    email: 'claire.moreau@email.fr',
     ville: 'Champagnole',
     date: 'Mar 22 juillet · 9h00',
     ecurie: 'Écurie du Moulin',
@@ -29,9 +30,10 @@ const seancesInit = [
     photos: [],
     photosByCheval: {},
   },
-  {
+    {
     id: 2,
     client: 'Laura Petit',
+    email: 'laura.petit@email.fr',
     ville: 'Poligny',
     date: 'Mar 22 juillet · 11h00',
     ecurie: 'Les Écuries du Val',
@@ -147,6 +149,10 @@ export default function Seance() {
   const [saved, setSaved] = useState([])
   const [signatures, setSignatures] = useState({})
   const [saving, setSaving] = useState(false)
+  const [emailsClients, setEmailsClients] = useState(
+  Object.fromEntries(seancesInit.map(s => [s.id, s.email || '']))
+)
+  const [compteRenduEnvoye, setCompteRenduEnvoye] = useState({})
 
   function togglePrestation(seanceId, prestId) {
     setSeances(prev => prev.map(s => {
@@ -186,6 +192,19 @@ export default function Seance() {
 
     setSaved(prev => [...prev, seanceId])
     setSaving(false)
+  }
+
+  async function envoyerCR(seanceId) {
+    const seance = seances.find(s => s.id === seanceId)
+    await envoyerCompteRendu(
+      emailsClients[seanceId],
+      seance.client,
+      prestationsDetail.filter(p => seance.prestationsChecked.includes(p.id)),
+      seance.notes,
+      getMontantAuto(seance.prestationsChecked),
+      signatures[seanceId] || null
+    )
+    setCompteRenduEnvoye(prev => ({ ...prev, [seanceId]: true }))
   }
 
   return (
@@ -341,18 +360,46 @@ export default function Seance() {
                   )}
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => sauvegarder(s.id)}
-                    disabled={saving}
-                    className="flex-1 bg-emerald-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                  >
-                    {saving ? 'Envoi vers Odoo...' : `Enregistrer → Générer facture Odoo (${getMontantAuto(s.prestationsChecked)} CHF)`}
-                  </button>
-                  <button className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                    Aperçu
-                  </button>
+                {/* EMAIL CLIENT */}
+                <div className="mb-4">
+                  <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Email du client</div>
+                  <input
+                    type="email"
+                    value={emailsClients[s.id] || ''}
+                    onChange={e => setEmailsClients(prev => ({ ...prev, [s.id]: e.target.value }))}
+                    placeholder="email@client.fr"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 outline-none focus:border-emerald-400"
+                  />
                 </div>
+
+                {/* BOUTONS */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => sauvegarder(s.id)}
+                      disabled={saving}
+                      className="flex-1 bg-emerald-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                    >
+                      {saving ? 'Envoi vers Odoo...' : 'Enregistrer → Facture Odoo (' + getMontantAuto(s.prestationsChecked) + ' CHF)'}
+                    </button>
+                    <button className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      Aperçu
+                    </button>
+                  </div>
+                  {emailsClients[s.id] && (
+                    <button
+                      onClick={() => envoyerCR(s.id)}
+                      className={`w-full text-xs font-semibold py-2 rounded-lg transition-colors ${
+                        compteRenduEnvoye[s.id]
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                      }`}
+                    >
+                      {compteRenduEnvoye[s.id] ? '✓ Compte rendu envoyé !' : '📧 Envoyer compte rendu au client'}
+                    </button>
+                  )}
+                </div>
+
               </div>
             )}
           </div>

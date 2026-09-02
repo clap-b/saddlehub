@@ -80,3 +80,18 @@ export async function envoyerSeance(signatureBase64, clientNom, montant, prestat
     return null
   }
 }
+
+export async function envoyerCompteRendu(clientEmail, clientNom, prestations, notes, montant, signature) {
+  try {
+    const response = await fetch(`${API_URL}/api/compte-rendu`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientEmail, clientNom, prestations, notes, montant, signature })
+    })
+    const data = await response.json()
+    return data
+  } catch (err) {
+    console.error('Erreur envoi compte rendu:', err)
+    return null
+  }
+}
