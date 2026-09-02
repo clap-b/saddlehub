@@ -95,3 +95,14 @@ export async function envoyerCompteRendu(clientEmail, clientNom, prestations, no
     return null
   }
 }
+
+export async function getStock() {
+  try {
+    const response = await fetch(`${API_URL}/api/produits`)
+    const data = await response.json()
+    return data
+  } catch (err) {
+    console.error('Erreur récupération stock Odoo:', err)
+    return []
+  }
+}

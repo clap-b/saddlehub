@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getProduits } from '../services/odoo'
 
+import { getStock } from '../services/odoo'
+
 const stockInitial = [
   {
     lieu: 'Camion CH 🇨🇭',
@@ -36,6 +38,11 @@ const stockInitial = [
       { id: 14, nom: 'Kit nettoyage', type: 'Accessoire', statut: 'Disponible' },
     ]
   },
+    {
+  lieu: 'Odoo 🔗',
+  items: []
+}
+  
 ]
 
 const checklist = [
@@ -65,6 +72,23 @@ export default function Materiel() {
   const [editItem, setEditItem] = useState(null)
   const [editStatut, setEditStatut] = useState('')
 
+  useEffect(() => {
+  getStock().then(data => {
+    if (data.length > 0) {
+      const itemsOdoo = data.map((p, i) => ({
+        id: 1000 + i,
+        nom: p.name,
+        type: p.categ_id ? p.categ_id[1] : 'Autre',
+        statut: p.qty_available > 0 ? 'Disponible' : 'Rupture de stock'
+      }))
+      setStock(prev => prev.map(s =>
+        s.lieu === 'Odoo 🔗'
+          ? { ...s, items: itemsOdoo }
+          : s
+      ))
+    }
+  })
+}, [])
   useEffect(() => {
     getProduits().then(data => {
       console.log('Produits Odoo:', data)
