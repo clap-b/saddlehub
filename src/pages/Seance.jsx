@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { envoyerSignature } from '../services/odoo'
+import { envoyerSeance } from '../services/odoo'
 
 const prestationsDetail = [
   { id: 'bilan', label: 'Bilan complet selle/cheval', prix: 120 },
@@ -55,20 +55,20 @@ function ZoneSignature({ onSignature }) {
   const [signed, setSigned] = useState(false)
 
   function getPos(e, canvas) {
-  const rect = canvas.getBoundingClientRect()
-  const scaleX = canvas.width / rect.width
-  const scaleY = canvas.height / rect.height
-  if (e.touches) {
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    if (e.touches) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY
+      }
+    }
     return {
-      x: (e.touches[0].clientX - rect.left) * scaleX,
-      y: (e.touches[0].clientY - rect.top) * scaleY
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
     }
   }
-  return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top) * scaleY
-  }
-}
 
   function startDraw(e) {
     e.preventDefault()
@@ -146,6 +146,7 @@ export default function Seance() {
   const [ouvert, setOuvert] = useState(1)
   const [saved, setSaved] = useState([])
   const [signatures, setSignatures] = useState({})
+  const [saving, setSaving] = useState(false)
 
   function togglePrestation(seanceId, prestId) {
     setSeances(prev => prev.map(s => {
@@ -169,27 +170,27 @@ export default function Seance() {
   }
 
   async function sauvegarder(seanceId) {
-  const seance = seances.find(s => s.id === seanceId)
-  const signature = signatures[seanceId]
-  
-  if (signature) {
-    const prestationsSelectionnees = prestationsDetail.filter(p => 
-      seance.prestationsChecked.includes(p.id)
-    )
-    await envoyerSignature(
-      signature,
+    setSaving(true)
+    const seance = seances.find(s => s.id === seanceId)
+    const signature = signatures[seanceId]
+    const toutesPhotos = Object.values(seance.photosByCheval || {}).flat()
+
+    await envoyerSeance(
+      signature || null,
       seance.client,
       getMontantAuto(seance.prestationsChecked),
-      prestationsSelectionnees
+      prestationsDetail.filter(p => seance.prestationsChecked.includes(p.id)),
+      seance.notes,
+      toutesPhotos
     )
+
+    setSaved(prev => [...prev, seanceId])
+    setSaving(false)
   }
-  
-  setSaved(prev => [...prev, seanceId])
-}
+
   return (
     <div className="flex flex-col gap-4">
 
-      {/* À DOCUMENTER */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-bold text-gray-900">Séances à documenter</div>
@@ -267,8 +268,6 @@ export default function Seance() {
                   )}
                 </div>
 
-                
-
                 {/* NOTES */}
                 <div className="mb-4">
                   <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Notes de séance</div>
@@ -281,56 +280,56 @@ export default function Seance() {
                   />
                 </div>
 
-               {/* CHEVAL + PHOTOS PAR CHEVAL */}
-<div className="mb-4">
-  <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Photos par cheval</div>
-  {s.chevaux.map(cheval => (
-    <div key={cheval} className="mb-3 border border-gray-100 rounded-xl p-3">
-      <div className="text-xs font-semibold text-gray-700 mb-2">🐴 {cheval}</div>
-      <div className="flex gap-2 flex-wrap">
-        {(s.photosByCheval?.[cheval] || []).map((p, idx) => (
-          <div key={idx} className="w-16 h-16 rounded-lg overflow-hidden border border-emerald-200 relative">
-            <img src={p} alt="photo" className="w-full h-full object-cover" />
-            <button
-              onClick={() => {
-                const updated = { ...s.photosByCheval }
-                updated[cheval] = updated[cheval].filter((_, i) => i !== idx)
-                updateField(s.id, 'photosByCheval', updated)
-              }}
-              className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-        <label className="w-16 h-16 rounded-lg bg-gray-50 border border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 transition-colors">
-          <span className="text-2xl text-gray-300">+</span>
-          <span className="text-xs text-gray-400">{cheval}</span>
-          <input
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            className="hidden"
-            onChange={e => {
-              const files = Array.from(e.target.files)
-              files.forEach(file => {
-                const reader = new FileReader()
-                reader.onload = ev => {
-                  const current = s.photosByCheval?.[cheval] || []
-                  updateField(s.id, 'photosByCheval', {
-                    ...s.photosByCheval,
-                    [cheval]: [...current, ev.target.result]
-                  })
-                }
-                reader.readAsDataURL(file)
-              })
-            }}
-          />
-        </label>
-      </div>
-    </div>
-  ))}
-</div>
+                {/* PHOTOS PAR CHEVAL */}
+                <div className="mb-4">
+                  <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Photos par cheval</div>
+                  {s.chevaux.map(cheval => (
+                    <div key={cheval} className="mb-3 border border-gray-100 rounded-xl p-3">
+                      <div className="text-xs font-semibold text-gray-700 mb-2">🐴 {cheval}</div>
+                      <div className="flex gap-2 flex-wrap">
+                        {(s.photosByCheval?.[cheval] || []).map((p, idx) => (
+                          <div key={idx} className="w-16 h-16 rounded-lg overflow-hidden border border-emerald-200 relative">
+                            <img src={p} alt="photo" className="w-full h-full object-cover" />
+                            <button
+                              onClick={() => {
+                                const updated = { ...s.photosByCheval }
+                                updated[cheval] = updated[cheval].filter((_, i) => i !== idx)
+                                updateField(s.id, 'photosByCheval', updated)
+                              }}
+                              className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <label className="w-16 h-16 rounded-lg bg-gray-50 border border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 transition-colors">
+                          <span className="text-2xl text-gray-300">+</span>
+                          <span className="text-xs text-gray-400">{cheval}</span>
+                          <input
+                            type="file"
+                            accept="image/*,video/*"
+                            multiple
+                            className="hidden"
+                            onChange={e => {
+                              const files = Array.from(e.target.files)
+                              files.forEach(file => {
+                                const reader = new FileReader()
+                                reader.onload = ev => {
+                                  const current = s.photosByCheval?.[cheval] || []
+                                  updateField(s.id, 'photosByCheval', {
+                                    ...s.photosByCheval,
+                                    [cheval]: [...current, ev.target.result]
+                                  })
+                                }
+                                reader.readAsDataURL(file)
+                              })
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
                 {/* SIGNATURE */}
                 <div className="mb-4">
@@ -345,9 +344,10 @@ export default function Seance() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => sauvegarder(s.id)}
-                    className="flex-1 bg-emerald-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+                    disabled={saving}
+                    className="flex-1 bg-emerald-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
                   >
-                    Enregistrer → Générer facture Odoo ({getMontantAuto(s.prestationsChecked)} CHF)
+                    {saving ? 'Envoi vers Odoo...' : `Enregistrer → Générer facture Odoo (${getMontantAuto(s.prestationsChecked)} CHF)`}
                   </button>
                   <button className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                     Aperçu
