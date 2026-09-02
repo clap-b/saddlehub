@@ -54,3 +54,14 @@ export async function getMetriques() {
     return { rdvsMois: 0, demandesEnAttente: 0, rdvs: [], pistes: [] }
   }
 }
+
+export async function getPistes() {
+  try {
+    const response = await fetch(`${API_URL}/api/pistes`)
+    const data = await response.json()
+    return data
+  } catch (err) {
+    console.error('Erreur récupération pistes CRM:', err)
+    return []
+  }
+}
