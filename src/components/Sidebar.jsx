@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getPistes } from '../services/odoo'
 
 const navItems = [
   { id: 'accueil', label: 'Accueil' },
@@ -13,6 +14,15 @@ const navItems = [
 
 export default function Sidebar({ current, onNavigate, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [nbDemandes, setNbDemandes] = useState(0)
+
+  useEffect(() => {
+    getPistes().then(data => setNbDemandes(data.length))
+    const interval = setInterval(() => {
+      getPistes().then(data => setNbDemandes(data.length))
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   function navigate(id) {
     onNavigate(id)
@@ -40,7 +50,14 @@ export default function Sidebar({ current, onNavigate, onLogout }) {
                   : 'text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              {item.label}
+              <div className="flex items-center justify-between w-full">
+                <span>{item.label}</span>
+                {item.id === 'demandes' && nbDemandes > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {nbDemandes}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </nav>
@@ -57,20 +74,27 @@ export default function Sidebar({ current, onNavigate, onLogout }) {
         <div className="text-sm font-bold text-gray-900">
           saddle<span className="text-emerald-600">hub</span>
         </div>
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="text-gray-500 hover:text-gray-900"
-        >
-          {menuOpen ? (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 4l12 12M4 16L16 4"/>
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M2 5h16M2 10h16M2 15h16"/>
-            </svg>
+        <div className="flex items-center gap-2">
+          {nbDemandes > 0 && (
+            <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+              {nbDemandes}
+            </span>
           )}
-        </button>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="text-gray-500 hover:text-gray-900"
+          >
+            {menuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 4l12 12M4 16L16 4"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 5h16M2 10h16M2 15h16"/>
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* MOBILE MENU */}
@@ -87,7 +111,14 @@ export default function Sidebar({ current, onNavigate, onLogout }) {
                     : 'text-gray-500 border-transparent hover:bg-gray-50'
                 }`}
               >
-                {item.label}
+                <div className="flex items-center justify-between">
+                  <span>{item.label}</span>
+                  {item.id === 'demandes' && nbDemandes > 0 && (
+                    <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {nbDemandes}
+                    </span>
+                  )}
+                </div>
               </button>
             ))}
           </nav>
