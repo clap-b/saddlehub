@@ -247,7 +247,7 @@ export default function Seance() {
                 {/* PRESTATIONS */}
                 <div className="mb-4">
                   <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Prestations réalisées</div>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-1 gap-1.5">
                     {prestationsDetail.map(p => (
                       <div
                         key={p.id}
