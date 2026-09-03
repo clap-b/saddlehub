@@ -111,10 +111,15 @@ const clientsData = [
 ]
 
 export default function Clients() {
+  const [clients, setClients] = useState(clientsData)
   const [selected, setSelected] = useState(clientsData[0])
   const [onglet, setOnglet] = useState('infos')
   const [recherche, setRecherche] = useState('')
   const [filtreStatut, setFiltreStatut] = useState('Tous')
+  const [showNouveauClient, setShowNouveauClient] = useState(false)
+  const [showNouveauCheval, setShowNouveauCheval] = useState(false)
+  const [newClient, setNewClient] = useState({ name: '', ecurie: '', ville: '', email: '', tel: '', dispo: '', contact: 'SMS' })
+  const [newCheval, setNewCheval] = useState({ name: '', selle: '', arcon: '', etat: '' })
 
   useEffect(() => {
     getClients().then(data => {
@@ -122,7 +127,42 @@ export default function Clients() {
     })
   }, [])
 
-  const clientsFiltres = clientsData.filter(c => {
+  function ajouterClient() {
+    if (!newClient.name) return
+    const client = {
+      id: Date.now(),
+      ...newClient,
+      adresseEcurie: '',
+      adressePerso: '',
+      tag: 'Nouvelle',
+      tagColor: 'bg-blue-50 text-blue-600',
+      dotColor: 'bg-blue-400',
+      chevaux: [],
+      historique: [],
+      note: '',
+    }
+    setClients(prev => [...prev, client])
+    setSelected(client)
+    setNewClient({ name: '', ecurie: '', ville: '', email: '', tel: '', dispo: '', contact: 'SMS' })
+    setShowNouveauClient(false)
+  }
+
+  function ajouterCheval() {
+    if (!newCheval.name) return
+    const cheval = {
+      ...newCheval,
+      tag: 'OK',
+      tagColor: 'bg-emerald-50 text-emerald-700',
+    }
+    setClients(prev => prev.map(c =>
+      c.id === selected.id ? { ...c, chevaux: [...c.chevaux, cheval] } : c
+    ))
+    setSelected(prev => ({ ...prev, chevaux: [...prev.chevaux, cheval] }))
+    setNewCheval({ name: '', selle: '', arcon: '', etat: '' })
+    setShowNouveauCheval(false)
+  }
+
+  const clientsFiltres = clients.filter(c => {
     const matchRecherche = c.name.toLowerCase().includes(recherche.toLowerCase()) ||
       c.ville.toLowerCase().includes(recherche.toLowerCase())
     const matchStatut = filtreStatut === 'Tous' || c.tag === filtreStatut
@@ -183,7 +223,10 @@ export default function Clients() {
           )}
         </div>
 
-        <button className="mt-3 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
+        <button
+          onClick={() => setShowNouveauClient(true)}
+          className="mt-3 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+        >
           + Nouveau client
         </button>
       </div>
@@ -195,7 +238,6 @@ export default function Clients() {
           <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${selected.tagColor}`}>{selected.tag}</span>
         </div>
 
-        {/* ONGLETS */}
         <div className="flex gap-1 mb-4 bg-gray-50 rounded-lg p-1">
           {['infos', 'chevaux', 'historique'].map(o => (
             <button
@@ -210,7 +252,6 @@ export default function Clients() {
           ))}
         </div>
 
-        {/* ONGLET INFOS */}
         {onglet === 'infos' && (
           <div className="flex flex-col gap-3">
             <div>
@@ -239,7 +280,6 @@ export default function Clients() {
           </div>
         )}
 
-        {/* ONGLET CHEVAUX */}
         {onglet === 'chevaux' && (
           <div>
             {selected.chevaux.length === 0 ? (
@@ -256,13 +296,15 @@ export default function Clients() {
                 </div>
               ))
             )}
-            <button className="mt-3 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors">
+            <button
+              onClick={() => setShowNouveauCheval(true)}
+              className="mt-3 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+            >
               + Ajouter un cheval
             </button>
           </div>
         )}
 
-        {/* ONGLET HISTORIQUE */}
         {onglet === 'historique' && (
           <div>
             {selected.historique.length === 0 ? (
@@ -285,6 +327,87 @@ export default function Clients() {
           </div>
         )}
       </div>
+
+      {/* POPUP NOUVEAU CLIENT */}
+      {showNouveauClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" onClick={() => setShowNouveauClient(false)}>
+          <div className="bg-white rounded-2xl p-6 w-96 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-bold text-gray-900">Nouveau client</div>
+              <button onClick={() => setShowNouveauClient(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Nom', field: 'name', placeholder: 'Prénom Nom' },
+                { label: 'Écurie', field: 'ecurie', placeholder: 'Nom de l\'écurie' },
+                { label: 'Ville', field: 'ville', placeholder: 'Ville' },
+                { label: 'Email', field: 'email', placeholder: 'email@exemple.fr' },
+                { label: 'Téléphone', field: 'tel', placeholder: '+33 6 ...' },
+                { label: 'Disponibilités', field: 'dispo', placeholder: 'Ex : Mardi matin' },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <div className="text-xs text-gray-400 font-semibold mb-1">{label}</div>
+                  <input
+                    type="text"
+                    value={newClient[field]}
+                    onChange={e => setNewClient(prev => ({ ...prev, [field]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 outline-none focus:border-emerald-400"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <button onClick={ajouterClient} className="flex-1 bg-emerald-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-emerald-700">
+                  Ajouter
+                </button>
+                <button onClick={() => setShowNouveauClient(false)} className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP NOUVEAU CHEVAL */}
+      {showNouveauCheval && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" onClick={() => setShowNouveauCheval(false)}>
+          <div className="bg-white rounded-2xl p-6 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-bold text-gray-900">Nouveau cheval — {selected.name}</div>
+              <button onClick={() => setShowNouveauCheval(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Nom du cheval', field: 'name', placeholder: 'Ex : Nuage' },
+                { label: 'Selle actuelle', field: 'selle', placeholder: 'Ex : Passier Optima' },
+                { label: 'Arçon', field: 'arcon', placeholder: 'Ex : Arçon 33' },
+                { label: 'État', field: 'etat', placeholder: 'Ex : Bon état' },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <div className="text-xs text-gray-400 font-semibold mb-1">{label}</div>
+                  <input
+                    type="text"
+                    value={newCheval[field]}
+                    onChange={e => setNewCheval(prev => ({ ...prev, [field]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 outline-none focus:border-emerald-400"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <button onClick={ajouterCheval} className="flex-1 bg-emerald-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-emerald-700">
+                  Ajouter
+                </button>
+                <button onClick={() => setShowNouveauCheval(false)} className="text-xs border border-gray-200 text-gray-500 px-3 py-2 rounded-lg">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

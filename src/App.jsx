@@ -34,7 +34,7 @@ export default function App() {
     tournee: <Tournee />,
     materiel: <Materiel />,
     clients: <Clients />,
-    demandes: <Demandes />,
+    demandes: <Demandes onNavigate={setCurrent} />,
     seance: <Seance />,
     calendrier: <Calendrier />,
     parametres: <Parametres />,

@@ -271,9 +271,9 @@ export default function Seance() {
                           </span>
                         </div>
                         {p.prix !== null && (
-                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                            {p.prix === 0 ? 'Gratuit' : p.prix + ' CHF'}
-                          </span>
+                          <span className="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">
+  {p.prix === 0 ? 'Gratuit' : p.prix + ' CHF'}
+</span>
                         )}
                       </div>
                     ))}

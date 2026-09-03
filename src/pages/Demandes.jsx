@@ -43,7 +43,7 @@ const demandes = [
   },
 ]
 
-export default function Demandes() {
+export default function Demandes({ onNavigate }) {
   const [traitees, setTraitees] = useState([])
   const [pistesOdoo, setPistesOdoo] = useState([])
   const [popupContact, setPopupContact] = useState(null)
@@ -125,15 +125,19 @@ export default function Demandes() {
               <div className="text-xs text-gray-300 mt-1">{d.temps}</div>
             </div>
             <div className="flex flex-col gap-1.5 flex-shrink-0">
-              <button
+                            <button
                 onClick={() => setPopupContact(d)}
                 className="text-xs border border-emerald-500 text-emerald-600 px-2 py-1 rounded-md hover:bg-emerald-50 transition-colors"
               >
                 Contacter
               </button>
-              <button className="text-xs border border-gray-200 text-gray-500 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors">
+              <button
+                onClick={() => onNavigate('tournee')}
+                className="text-xs border border-gray-200 text-gray-500 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors"
+              >
                 Placer tournée
               </button>
+  
               <button
                 onClick={() => marquerTraitee(d.id)}
                 className="text-xs border border-gray-200 text-gray-400 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors"

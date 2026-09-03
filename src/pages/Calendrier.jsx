@@ -106,6 +106,8 @@ export default function Calendrier() {
     ...(rdvsOdoo[jourSelectionne] || []),
   ]
 
+  
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -219,7 +221,7 @@ export default function Calendrier() {
           </div>
         )}
 
-        {rdvsDuJour.length > 0 ? (
+                {rdvsDuJour.length > 0 ? (
           <div className="flex flex-col gap-2">
             {rdvsDuJour.map((r, i) => (
               <div key={i} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl group">
@@ -228,15 +230,39 @@ export default function Calendrier() {
                   <div className="text-xs font-semibold text-gray-900">{r.client}</div>
                   <div className="text-xs text-gray-400">📍 {r.lieu}</div>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${r.tagColor}`}>{r.tag}</span>
-                {!r.tag.includes('Odoo') && (
-                  <button
-                    onClick={() => supprimerRdv(i)}
-                    className="text-gray-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
-                  >
-                    ✕
-                  </button>
-                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {r.tag === 'À confirmer' && (
+                    <button
+                      onClick={() => {
+                        const contacts = {
+                          'Claire Moreau': '+33612345678',
+                          'Laura Petit': '+33623456789',
+                          'Emma Favre': '+33634567890',
+                          'Nathalie Simon': '+33645678901',
+                          'Hélène Roy': '+33656789012',
+                        }
+                        const tel = contacts[r.client]
+                        if (tel) {
+                          window.open('https://wa.me/' + tel.replace(/\s/g, '').replace(/\+/g, ''))
+                        } else {
+                          alert('Pas de contact enregistré pour ' + r.client)
+                        }
+                      }}
+                      className="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition-colors"
+                    >
+                      Contacter
+                    </button>
+                  )}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${r.tagColor}`}>{r.tag}</span>
+                  {!r.tag.includes('Odoo') && (
+                    <button
+                      onClick={() => supprimerRdv(i)}
+                      className="text-gray-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
             <div className="mt-1 bg-emerald-50 text-emerald-700 text-xs rounded-lg p-2.5">
