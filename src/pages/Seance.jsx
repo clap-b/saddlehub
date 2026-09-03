@@ -30,7 +30,7 @@ const seancesInit = [
     photos: [],
     photosByCheval: {},
   },
-    {
+  {
     id: 2,
     client: 'Laura Petit',
     email: 'laura.petit@email.fr',
@@ -150,9 +150,12 @@ export default function Seance() {
   const [signatures, setSignatures] = useState({})
   const [saving, setSaving] = useState(false)
   const [emailsClients, setEmailsClients] = useState(
-  Object.fromEntries(seancesInit.map(s => [s.id, s.email || '']))
-)
+    Object.fromEntries(seancesInit.map(s => [s.id, s.email || '']))
+  )
   const [compteRenduEnvoye, setCompteRenduEnvoye] = useState({})
+  const [showNouvellePrestation, setShowNouvellePrestation] = useState(false)
+  const [nouvellePrestation, setNouvellePrestation] = useState({ label: '', prix: '' })
+  const [prestationsCustom, setPrestationsCustom] = useState([])
 
   function togglePrestation(seanceId, prestId) {
     setSeances(prev => prev.map(s => {
@@ -169,10 +172,12 @@ export default function Seance() {
   }
 
   function getMontantAuto(prestationsChecked) {
-    return prestationsChecked.reduce((total, id) => {
+    const montantStandard = prestationsChecked.reduce((total, id) => {
       const p = prestationsDetail.find(p => p.id === id)
       return total + (p?.prix || 0)
     }, 0)
+    const montantCustom = prestationsCustom.reduce((total, p) => total + (p.prix || 0), 0)
+    return montantStandard + montantCustom
   }
 
   async function sauvegarder(seanceId) {
@@ -180,12 +185,16 @@ export default function Seance() {
     const seance = seances.find(s => s.id === seanceId)
     const signature = signatures[seanceId]
     const toutesPhotos = Object.values(seance.photosByCheval || {}).flat()
+    const toutesLesPresations = [
+      ...prestationsDetail.filter(p => seance.prestationsChecked.includes(p.id)),
+      ...prestationsCustom
+    ]
 
     await envoyerSeance(
       signature || null,
       seance.client,
       getMontantAuto(seance.prestationsChecked),
-      prestationsDetail.filter(p => seance.prestationsChecked.includes(p.id)),
+      toutesLesPresations,
       seance.notes,
       toutesPhotos
     )
@@ -196,10 +205,14 @@ export default function Seance() {
 
   async function envoyerCR(seanceId) {
     const seance = seances.find(s => s.id === seanceId)
+    const toutesLesPresations = [
+      ...prestationsDetail.filter(p => seance.prestationsChecked.includes(p.id)),
+      ...prestationsCustom
+    ]
     await envoyerCompteRendu(
       emailsClients[seanceId],
       seance.client,
-      prestationsDetail.filter(p => seance.prestationsChecked.includes(p.id)),
+      toutesLesPresations,
       seance.notes,
       getMontantAuto(seance.prestationsChecked),
       signatures[seanceId] || null
@@ -247,7 +260,7 @@ export default function Seance() {
                 {/* PRESTATIONS */}
                 <div className="mb-4">
                   <div className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-2">Prestations réalisées</div>
-                  <div className="grid grid-cols-1 gap-1.5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                     {prestationsDetail.map(p => (
                       <div
                         key={p.id}
@@ -271,9 +284,9 @@ export default function Seance() {
                           </span>
                         </div>
                         {p.prix !== null && (
-                          <span className="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">
-  {p.prix === 0 ? 'Gratuit' : p.prix + ' CHF'}
-</span>
+                          <span className="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap ml-2">
+                            {p.prix === 0 ? 'Gratuit' : p.prix + ' CHF'}
+                          </span>
                         )}
                       </div>
                     ))}
@@ -285,6 +298,71 @@ export default function Seance() {
                       <span className="text-sm font-bold text-emerald-600">{getMontantAuto(s.prestationsChecked)} CHF</span>
                     </div>
                   )}
+
+                  {/* PRESTATIONS CUSTOM */}
+                  {showNouvellePrestation && (
+                    <div className="mt-2 bg-gray-50 rounded-xl p-3 flex flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">Prestation</div>
+                          <input
+                            type="text"
+                            value={nouvellePrestation.label}
+                            onChange={e => setNouvellePrestation(prev => ({ ...prev, label: e.target.value }))}
+                            placeholder="Ex : Nettoyage selle"
+                            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">Prix (CHF)</div>
+                          <input
+                            type="number"
+                            value={nouvellePrestation.prix}
+                            onChange={e => setNouvellePrestation(prev => ({ ...prev, prix: e.target.value }))}
+                            placeholder="0"
+                            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (!nouvellePrestation.label) return
+                            setPrestationsCustom(prev => [...prev, { id: 'custom-' + Date.now(), label: nouvellePrestation.label, prix: parseFloat(nouvellePrestation.prix) || 0 }])
+                            setNouvellePrestation({ label: '', prix: '' })
+                            setShowNouvellePrestation(false)
+                          }}
+                          className="flex-1 bg-emerald-600 text-white text-xs py-1.5 rounded-lg hover:bg-emerald-700 font-semibold"
+                        >
+                          Ajouter
+                        </button>
+                        <button onClick={() => setShowNouvellePrestation(false)} className="text-xs border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg">
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {prestationsCustom.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1">
+                      {prestationsCustom.map((p, i) => (
+                        <div key={p.id} className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                          <span className="text-xs font-medium text-emerald-700">{p.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-emerald-600">{p.prix} CHF</span>
+                            <button onClick={() => setPrestationsCustom(prev => prev.filter((_, idx) => idx !== i))} className="text-emerald-400 hover:text-red-400 text-xs">✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setShowNouvellePrestation(true)}
+                    className="mt-2 w-full text-xs border border-dashed border-gray-300 text-gray-400 rounded-lg py-2 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+                  >
+                    + Ajouter une prestation
+                  </button>
                 </div>
 
                 {/* NOTES */}
